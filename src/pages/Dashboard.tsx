@@ -91,11 +91,11 @@ const Dashboard = () => {
 
       {/* Main Grid */}
       <main className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]">
+        <div className="flex flex-row gap-6 h-[calc(100vh-180px)] overflow-x-auto">
           {agentCards.map((agent, index) => (
             <Card
               key={agent.id}
-              className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover animate-fade-in"
+              className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover animate-fade-in min-w-[350px] flex-1"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <CardHeader className={`bg-gradient-to-r ${agent.gradient} text-white`}>
