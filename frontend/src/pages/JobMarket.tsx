@@ -75,7 +75,9 @@ const JobMarket = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Job Market Overview</h1>
-              <p className="text-sm text-muted-foreground">Explore trending roles and opportunities</p>
+              <p className="text-sm text-muted-foreground">
+                Powered by AI agent that automatically scrapes job postings from LinkedIn, Indeed, and Glassdoor
+              </p>
             </div>
           </div>
         </div>

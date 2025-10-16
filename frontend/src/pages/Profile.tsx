@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useUserData, UserDataUpdate } from "@/contexts/UserDataContext";
+import {
+  useUserData,
+  UserDataUpdate,
+  UserExperience,
+} from "@/contexts/UserDataContext";
 import {
   Card,
   CardContent,
@@ -26,6 +30,8 @@ import {
   Edit3,
   Save,
   X,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 const Profile = () => {
@@ -42,7 +48,26 @@ const Profile = () => {
     gpa: "",
     careerGoal: "",
     bio: "",
+    skills: [] as string[],
+    experience: [] as UserExperience[],
   });
+  const [newSkill, setNewSkill] = useState("");
+  const [editingExperience, setEditingExperience] = useState<number | null>(
+    null
+  );
+  const [newExperience, setNewExperience] = useState<UserExperience>({
+    title: "",
+    company: "",
+    duration: "",
+    description: "",
+  });
+  const [editingExperienceData, setEditingExperienceData] =
+    useState<UserExperience>({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
+    });
 
   // Use default values for display when userData is empty
   const displayData = {
@@ -56,7 +81,7 @@ const Profile = () => {
     careerGoal: userData.careerGoal || "Data Scientist",
     bio:
       userData.bio ||
-      "Passionate computer science student with a focus on machine learning and data analysis. Looking to make an impact in the tech industry through innovative solutions.",
+      "Passionate software engineering student with a focus on machine learning and data analysis. Looking to make an impact in the tech industry through innovative solutions.",
     skills:
       userData.skills.length > 0
         ? userData.skills
@@ -99,6 +124,8 @@ const Profile = () => {
       gpa: userData.gpa || "",
       careerGoal: userData.careerGoal || "",
       bio: userData.bio || "",
+      skills: userData.skills || [],
+      experience: userData.experience || [],
     });
     setIsEditing(true);
   };
@@ -115,9 +142,25 @@ const Profile = () => {
       gpa: editData.gpa,
       careerGoal: editData.careerGoal,
       bio: editData.bio,
+      skills: editData.skills,
+      experience: editData.experience,
     };
     updateUserData(updates);
     setIsEditing(false);
+    setNewSkill("");
+    setEditingExperience(null);
+    setNewExperience({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
+    });
+    setEditingExperienceData({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
+    });
   };
 
   const handleCancel = () => {
@@ -132,6 +175,22 @@ const Profile = () => {
       gpa: "",
       careerGoal: "",
       bio: "",
+      skills: [],
+      experience: [],
+    });
+    setNewSkill("");
+    setEditingExperience(null);
+    setNewExperience({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
+    });
+    setEditingExperienceData({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
     });
   };
 
@@ -140,6 +199,97 @@ const Profile = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Skills management functions
+  const addSkill = () => {
+    if (newSkill.trim() && !editData.skills.includes(newSkill.trim())) {
+      setEditData((prev) => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()],
+      }));
+      setNewSkill("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    setEditData((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((skill) => skill !== skillToRemove),
+    }));
+  };
+
+  // Experience management functions
+  const addExperience = () => {
+    if (newExperience.title.trim() && newExperience.company.trim()) {
+      setEditData((prev) => ({
+        ...prev,
+        experience: [...prev.experience, { ...newExperience }],
+      }));
+      setNewExperience({
+        title: "",
+        company: "",
+        duration: "",
+        description: "",
+      });
+    }
+  };
+
+  const updateExperience = (
+    index: number,
+    field: keyof UserExperience,
+    value: string
+  ) => {
+    setEditData((prev) => ({
+      ...prev,
+      experience: prev.experience.map((exp, i) =>
+        i === index ? { ...exp, [field]: value } : exp
+      ),
+    }));
+  };
+
+  const removeExperience = (index: number) => {
+    setEditData((prev) => ({
+      ...prev,
+      experience: prev.experience.filter((_, i) => i !== index),
+    }));
+  };
+
+  const startEditExperience = (index: number) => {
+    setEditingExperience(index);
+    setEditingExperienceData(editData.experience[index]);
+  };
+
+  const saveEditExperience = () => {
+    if (
+      editingExperience !== null &&
+      editingExperienceData.title.trim() &&
+      editingExperienceData.company.trim()
+    ) {
+      setEditData((prev) => ({
+        ...prev,
+        experience: prev.experience.map((exp, i) =>
+          i === editingExperience ? { ...editingExperienceData } : exp
+        ),
+      }));
+      setEditingExperience(null);
+      setEditingExperienceData({
+        title: "",
+        company: "",
+        duration: "",
+        description: "",
+      });
+    }
+  };
+
+  const cancelEditExperience = () => {
+    setEditingExperience(null);
+    setEditingExperienceData({
+      title: "",
+      company: "",
+      duration: "",
+      description: "",
+    });
   };
 
   if (isLoading) {
@@ -163,7 +313,7 @@ const Profile = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dashboard")}
                 className="gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -329,17 +479,53 @@ const Profile = () => {
                 <CardTitle>Skills</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {displayData.skills.map((skill, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="px-3 py-1"
-                    >
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {editData.skills.map((skill, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="px-3 py-1 flex items-center gap-1"
+                        >
+                          {skill}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => removeSkill(skill)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        placeholder="Add a skill"
+                        onKeyPress={(e) => e.key === "Enter" && addSkill()}
+                      />
+                      <Button onClick={addSkill} size="sm" className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {displayData.skills.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="px-3 py-1"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -352,21 +538,216 @@ const Profile = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {displayData.experience.map((exp, index) => (
-                  <div
-                    key={index}
-                    className="border-l-2 border-primary/20 pl-4"
-                  >
-                    <h4 className="font-semibold">{exp.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {exp.company}
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {exp.duration}
-                    </p>
-                    <p className="text-sm">{exp.description}</p>
-                  </div>
-                ))}
+                {isEditing ? (
+                  <>
+                    {editData.experience.map((exp, index) => (
+                      <div
+                        key={index}
+                        className="border-l-2 border-primary/20 pl-4 space-y-2"
+                      >
+                        {editingExperience === index ? (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm font-medium">
+                                  Title
+                                </Label>
+                                <Input
+                                  value={editingExperienceData.title}
+                                  onChange={(e) =>
+                                    setEditingExperienceData((prev) => ({
+                                      ...prev,
+                                      title: e.target.value,
+                                    }))
+                                  }
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">
+                                  Company
+                                </Label>
+                                <Input
+                                  value={editingExperienceData.company}
+                                  onChange={(e) =>
+                                    setEditingExperienceData((prev) => ({
+                                      ...prev,
+                                      company: e.target.value,
+                                    }))
+                                  }
+                                  className="mt-1"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Duration
+                              </Label>
+                              <Input
+                                value={editingExperienceData.duration}
+                                onChange={(e) =>
+                                  setEditingExperienceData((prev) => ({
+                                    ...prev,
+                                    duration: e.target.value,
+                                  }))
+                                }
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Description
+                              </Label>
+                              <Textarea
+                                value={editingExperienceData.description}
+                                onChange={(e) =>
+                                  setEditingExperienceData((prev) => ({
+                                    ...prev,
+                                    description: e.target.value,
+                                  }))
+                                }
+                                className="mt-1"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button onClick={saveEditExperience} size="sm">
+                                Save
+                              </Button>
+                              <Button
+                                onClick={cancelEditExperience}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-semibold">{exp.title}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {exp.company}
+                                </p>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  {exp.duration}
+                                </p>
+                                <p className="text-sm">{exp.description}</p>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  onClick={() => startEditExperience(index)}
+                                  variant="ghost"
+                                  size="sm"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  onClick={() => removeExperience(index)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="hover:bg-destructive hover:text-destructive-foreground"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    <div className="border-l-2 border-dashed border-muted pl-4 space-y-3">
+                      <h4 className="font-semibold text-muted-foreground">
+                        Add New Experience
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm font-medium">Title</Label>
+                          <Input
+                            value={newExperience.title}
+                            onChange={(e) =>
+                              setNewExperience((prev) => ({
+                                ...prev,
+                                title: e.target.value,
+                              }))
+                            }
+                            className="mt-1"
+                            placeholder="e.g., Software Engineer"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Company</Label>
+                          <Input
+                            value={newExperience.company}
+                            onChange={(e) =>
+                              setNewExperience((prev) => ({
+                                ...prev,
+                                company: e.target.value,
+                              }))
+                            }
+                            className="mt-1"
+                            placeholder="e.g., Tech Corp"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Duration</Label>
+                        <Input
+                          value={newExperience.duration}
+                          onChange={(e) =>
+                            setNewExperience((prev) => ({
+                              ...prev,
+                              duration: e.target.value,
+                            }))
+                          }
+                          className="mt-1"
+                          placeholder="e.g., Summer 2024"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Description
+                        </Label>
+                        <Textarea
+                          value={newExperience.description}
+                          onChange={(e) =>
+                            setNewExperience((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          className="mt-1"
+                          placeholder="Describe your role and achievements..."
+                        />
+                      </div>
+                      <Button
+                        onClick={addExperience}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Experience
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  displayData.experience.map((exp, index) => (
+                    <div
+                      key={index}
+                      className="border-l-2 border-primary/20 pl-4"
+                    >
+                      <h4 className="font-semibold">{exp.title}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {exp.company}
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {exp.duration}
+                      </p>
+                      <p className="text-sm">{exp.description}</p>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>

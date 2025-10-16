@@ -143,11 +143,19 @@ const Onboarding = () => {
                     <SelectValue placeholder="Select your major" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover z-50">
-                    <SelectItem value="cs">Computer Science</SelectItem>
-                    <SelectItem value="se">Software Engineering</SelectItem>
-                    <SelectItem value="data">Data Science</SelectItem>
-                    <SelectItem value="it">Information Technology</SelectItem>
-                    <SelectItem value="ce">Computer Engineering</SelectItem>
+                    <SelectItem value="Computer Science">
+                      Computer Science
+                    </SelectItem>
+                    <SelectItem value="Software Engineering">
+                      Software Engineering
+                    </SelectItem>
+                    <SelectItem value="Data Science">Data Science</SelectItem>
+                    <SelectItem value="Information Technology">
+                      Information Technology
+                    </SelectItem>
+                    <SelectItem value="Computer Engineering">
+                      Computer Engineering
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
