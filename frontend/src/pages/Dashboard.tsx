@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Briefcase,
   Lightbulb,
@@ -9,13 +10,45 @@ import {
   ArrowRight,
   Sparkles,
   User,
+  TrendingUp,
+  MapPin,
+  Send,
+  X,
 } from "lucide-react";
-import ChatbotPanel from "@/components/ChatbotPanel";
 import { useUserData } from "@/contexts/UserDataContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { userData } = useUserData();
+  const [chatMessage, setChatMessage] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState<
+    Array<{ id: number; message: string; isUser: boolean }>
+  >([]);
+
+  const handleSendMessage = () => {
+    if (chatMessage.trim()) {
+      // Add user message to chat history
+      const newMessage = {
+        id: Date.now(),
+        message: chatMessage,
+        isUser: true,
+      };
+      setChatHistory((prev) => [...prev, newMessage]);
+
+      // TODO: Implement AI response
+      console.log("Sending message:", chatMessage);
+      setChatMessage("");
+    }
+  };
+
+  const handleInputClick = () => {
+    setIsChatOpen(true);
+  };
+
+  const closeChat = () => {
+    setIsChatOpen(false);
+  };
 
   const agentCards = [
     {
@@ -28,11 +61,18 @@ const Dashboard = () => {
         { label: "Avg Salary", value: "$95K" },
         { label: "Match Score", value: "87%" },
       ],
-      highlights: [
-        "Data Scientist positions up 23%",
-        "Machine Learning roles in high demand",
-        "Remote opportunities available",
+      trendingSkills: [
+        { skill: "Python", trend: "+39%" },
+        { skill: "Machine Learning", trend: "+28%" },
+        { skill: "React", trend: "+45%" },
+        { skill: "AWS", trend: "+32%" },
       ],
+      jobAvailability: [
+        { role: "Frontend Dev", trend: "+23%" },
+        { role: "Backend Dev", trend: "-16%" },
+        { role: "Data Scientist", trend: "+31%" },
+      ],
+      location: userData.location || "Dallas, TX",
       route: "/job-market",
       gradient: "from-orange-500 to-amber-500",
     },
@@ -97,18 +137,15 @@ const Dashboard = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <CardHeader
-                className={`bg-gradient-to-r ${agent.gradient} text-white`}
+                className={`bg-gradient-to-r ${agent.gradient} text-white py-4`}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <agent.icon className="w-6 h-6" />
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <agent.icon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <CardTitle className="text-white">{agent.title}</CardTitle>
-                    <CardDescription className="text-white/90">
-                      {agent.description}
-                    </CardDescription>
-                  </div>
+                  <CardTitle className="text-white text-lg">
+                    {agent.title}
+                  </CardTitle>
                 </div>
               </CardHeader>
 
@@ -130,24 +167,99 @@ const Dashboard = () => {
                   ))}
                 </div>
 
-                {/* Highlights */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    Key Highlights
-                  </h4>
-                  <ul className="space-y-2">
-                    {agent.highlights.map((highlight, i) => (
-                      <li
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5" />
-                        {highlight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Job Market Specific Content */}
+                {agent.id === "job-market" ? (
+                  <div className="space-y-4">
+                    {/* Trending Skills */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        Trending Skills
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {agent.trendingSkills?.map((skillData, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5"
+                          >
+                            <span className="text-sm font-medium text-foreground">
+                              {skillData.skill}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3 text-green-600" />
+                              <span className="text-xs font-bold text-green-600">
+                                {skillData.trend}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Job Availability */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          Job Availability
+                        </h4>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>in {agent.location}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {agent.jobAvailability?.map((job, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
+                          >
+                            <div className="flex items-center gap-2">
+                              <TrendingUp
+                                className={`w-4 h-4 ${
+                                  job.trend.startsWith("+")
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              />
+                              <span className="text-sm font-medium text-foreground">
+                                {job.role}
+                              </span>
+                              <span
+                                className={`text-sm font-bold ${
+                                  job.trend.startsWith("+")
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {job.trend}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Highlights for other cards */
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      Key Highlights
+                    </h4>
+                    <ul className="space-y-2">
+                      {agent.highlights.map((highlight, i) => (
+                        <li
+                          key={i}
+                          className="text-sm text-muted-foreground flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5" />
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Action Button */}
                 <Button
@@ -163,8 +275,99 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Floating Chatbot */}
-      <ChatbotPanel />
+      {/* Chat Input */}
+      <div className="flex gap-3 p-4">
+        <Input
+          value={chatMessage}
+          onChange={(e) => setChatMessage(e.target.value)}
+          placeholder="Ask me anything about your career..."
+          className="flex-1"
+          onClick={handleInputClick}
+          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+        />
+        <Button
+          onClick={handleSendMessage}
+          disabled={!chatMessage.trim()}
+          className="px-6"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Chat Overlay */}
+      {isChatOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Dimmed Background */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={closeChat}
+          />
+
+          {/* Chat Interface */}
+          <div className="relative bg-card border border-border rounded-lg shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
+            {/* Chat Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-lg font-semibold">AI Career Advisor</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeChat}
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {chatHistory.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <p>Start a conversation with your AI Career Advisor!</p>
+                </div>
+              ) : (
+                chatHistory.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${
+                      msg.isUser ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                        msg.isUser
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {msg.message}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Chat Input */}
+            <div className="p-4 border-t border-border">
+              <div className="flex gap-3">
+                <Input
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1"
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!chatMessage.trim()}
+                  className="px-6"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
