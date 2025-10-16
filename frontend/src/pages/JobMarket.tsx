@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, MapPin, DollarSign, Briefcase, TrendingUp, Building } from "lucide-react";
-import ChatbotPanel from "@/components/ChatbotPanel";
+import {
+  ArrowLeft,
+  MapPin,
+  DollarSign,
+  Briefcase,
+  TrendingUp,
+  Building,
+} from "lucide-react";
 
 const JobMarket = () => {
   const navigate = useNavigate();
@@ -74,8 +80,12 @@ const JobMarket = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Job Market Overview</h1>
-              <p className="text-sm text-muted-foreground">Explore trending roles and opportunities</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Job Market Overview
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Explore trending roles and opportunities
+              </p>
             </div>
           </div>
         </div>
@@ -90,22 +100,34 @@ const JobMarket = () => {
               <CardContent className="p-6">
                 <div className="flex flex-wrap gap-4">
                   <div className="flex-1 min-w-[200px]">
-                    <label className="text-sm font-medium mb-2 block">Role Type</label>
-                    <Select value={selectedRole} onValueChange={setSelectedRole}>
+                    <label className="text-sm font-medium mb-2 block">
+                      Role Type
+                    </label>
+                    <Select
+                      value={selectedRole}
+                      onValueChange={setSelectedRole}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover z-50">
                         <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="data-scientist">Data Scientist</SelectItem>
+                        <SelectItem value="data-scientist">
+                          Data Scientist
+                        </SelectItem>
                         <SelectItem value="ml-engineer">ML Engineer</SelectItem>
                         <SelectItem value="analyst">Data Analyst</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="flex-1 min-w-[200px]">
-                    <label className="text-sm font-medium mb-2 block">Location</label>
-                    <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <label className="text-sm font-medium mb-2 block">
+                      Location
+                    </label>
+                    <Select
+                      value={selectedLocation}
+                      onValueChange={setSelectedLocation}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="All Locations" />
                       </SelectTrigger>
@@ -137,8 +159,12 @@ const JobMarket = () => {
                             <Building className="w-6 h-6 text-primary-foreground" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-semibold text-foreground">{job.title}</h3>
-                            <p className="text-muted-foreground">{job.company}</p>
+                            <h3 className="text-xl font-semibold text-foreground">
+                              {job.title}
+                            </h3>
+                            <p className="text-muted-foreground">
+                              {job.company}
+                            </p>
                           </div>
                         </div>
 
@@ -187,10 +213,16 @@ const JobMarket = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {trendingSkills.map((skill, index) => (
-                  <div key={skill.name} className="space-y-2 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                  <div
+                    key={skill.name}
+                    className="space-y-2 animate-fade-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{skill.name}</span>
-                      <span className="text-muted-foreground">{skill.demand}%</span>
+                      <span className="text-muted-foreground">
+                        {skill.demand}%
+                      </span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                       <div
@@ -205,8 +237,6 @@ const JobMarket = () => {
           </div>
         </div>
       </main>
-
-      <ChatbotPanel />
     </div>
   );
 };

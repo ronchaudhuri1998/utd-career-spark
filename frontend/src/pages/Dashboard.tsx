@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Briefcase,
   Lightbulb,
@@ -12,43 +10,13 @@ import {
   User,
   TrendingUp,
   MapPin,
-  Send,
-  X,
 } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
+import MainChatOverlay from "@/components/MainChatOverlay";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { userData } = useUserData();
-  const [chatMessage, setChatMessage] = useState("");
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<
-    Array<{ id: number; message: string; isUser: boolean }>
-  >([]);
-
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      // Add user message to chat history
-      const newMessage = {
-        id: Date.now(),
-        message: chatMessage,
-        isUser: true,
-      };
-      setChatHistory((prev) => [...prev, newMessage]);
-
-      // TODO: Implement AI response
-      console.log("Sending message:", chatMessage);
-      setChatMessage("");
-    }
-  };
-
-  const handleInputClick = () => {
-    setIsChatOpen(true);
-  };
-
-  const closeChat = () => {
-    setIsChatOpen(false);
-  };
 
   const agentCards = [
     {
@@ -275,99 +243,7 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Chat Input */}
-      <div className="flex gap-3 p-4">
-        <Input
-          value={chatMessage}
-          onChange={(e) => setChatMessage(e.target.value)}
-          placeholder="Ask me anything about your career..."
-          className="flex-1"
-          onClick={handleInputClick}
-          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-        />
-        <Button
-          onClick={handleSendMessage}
-          disabled={!chatMessage.trim()}
-          className="px-6"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Chat Overlay */}
-      {isChatOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Dimmed Background */}
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={closeChat}
-          />
-
-          {/* Chat Interface */}
-          <div className="relative bg-card border border-border rounded-lg shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
-            {/* Chat Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="text-lg font-semibold">AI Career Advisor</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={closeChat}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {chatHistory.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <p>Start a conversation with your AI Career Advisor!</p>
-                </div>
-              ) : (
-                chatHistory.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.isUser ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.isUser
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      {msg.message}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Chat Input */}
-            <div className="p-4 border-t border-border">
-              <div className="flex gap-3">
-                <Input
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1"
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!chatMessage.trim()}
-                  className="px-6"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <MainChatOverlay />
     </div>
   );
 };

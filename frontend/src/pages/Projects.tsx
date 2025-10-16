@@ -4,8 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Lightbulb, Code, RefreshCw, ExternalLink } from "lucide-react";
-import ChatbotPanel from "@/components/ChatbotPanel";
+import {
+  ArrowLeft,
+  Lightbulb,
+  Code,
+  RefreshCw,
+  ExternalLink,
+} from "lucide-react";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -16,7 +21,8 @@ const Projects = () => {
     {
       id: 1,
       title: "Image Classification with Deep Learning",
-      description: "Build a CNN model to classify images using PyTorch. Train on CIFAR-10 dataset and deploy with Flask API.",
+      description:
+        "Build a CNN model to classify images using PyTorch. Train on CIFAR-10 dataset and deploy with Flask API.",
       difficulty: "Intermediate",
       skills: ["Python", "PyTorch", "CNN", "Flask"],
       techStack: ["PyTorch", "Flask", "Docker"],
@@ -25,7 +31,8 @@ const Projects = () => {
     {
       id: 2,
       title: "Real-time Analytics Dashboard",
-      description: "Create an interactive dashboard for real-time data visualization using streaming data from APIs.",
+      description:
+        "Create an interactive dashboard for real-time data visualization using streaming data from APIs.",
       difficulty: "Advanced",
       skills: ["React", "D3.js", "WebSocket", "Node.js"],
       techStack: ["React", "D3.js", "Node.js", "MongoDB"],
@@ -34,7 +41,8 @@ const Projects = () => {
     {
       id: 3,
       title: "NLP Sentiment Analysis Tool",
-      description: "Develop a sentiment analysis model using BERT to analyze customer reviews and feedback.",
+      description:
+        "Develop a sentiment analysis model using BERT to analyze customer reviews and feedback.",
       difficulty: "Intermediate",
       skills: ["Python", "NLP", "BERT", "Transformers"],
       techStack: ["Hugging Face", "Python", "Streamlit"],
@@ -43,7 +51,8 @@ const Projects = () => {
     {
       id: 4,
       title: "Personal Finance Tracker",
-      description: "Build a web app to track expenses, income, and savings goals with data visualization.",
+      description:
+        "Build a web app to track expenses, income, and savings goals with data visualization.",
       difficulty: "Beginner",
       skills: ["JavaScript", "React", "Chart.js"],
       techStack: ["React", "Chart.js", "Firebase"],
@@ -52,7 +61,8 @@ const Projects = () => {
     {
       id: 5,
       title: "Recommendation System",
-      description: "Implement collaborative filtering to build a movie recommendation engine using Python.",
+      description:
+        "Implement collaborative filtering to build a movie recommendation engine using Python.",
       difficulty: "Advanced",
       skills: ["Python", "Machine Learning", "Pandas"],
       techStack: ["Python", "scikit-learn", "FastAPI"],
@@ -61,7 +71,8 @@ const Projects = () => {
     {
       id: 6,
       title: "Task Management API",
-      description: "Create a RESTful API for task management with authentication and database integration.",
+      description:
+        "Create a RESTful API for task management with authentication and database integration.",
       difficulty: "Beginner",
       skills: ["Node.js", "Express", "MongoDB"],
       techStack: ["Node.js", "Express", "MongoDB", "JWT"],
@@ -91,8 +102,12 @@ const Projects = () => {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Project Ideas</h1>
-                <p className="text-sm text-muted-foreground">Build your portfolio with these projects</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Project Ideas
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Build your portfolio with these projects
+                </p>
               </div>
             </div>
             <Button className="bg-gradient-primary hover:opacity-90 transition-opacity gap-2">
@@ -109,7 +124,9 @@ const Projects = () => {
           <CardContent className="p-6">
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Difficulty</label>
+                <label className="text-sm font-medium mb-2 block">
+                  Difficulty
+                </label>
                 <Select value={difficulty} onValueChange={setDifficulty}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Levels" />
@@ -123,7 +140,9 @@ const Projects = () => {
                 </Select>
               </div>
               <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Skill Area</label>
+                <label className="text-sm font-medium mb-2 block">
+                  Skill Area
+                </label>
                 <Select value={skillArea} onValueChange={setSkillArea}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Areas" />
@@ -155,7 +174,11 @@ const Projects = () => {
                   </div>
                   <Badge
                     variant="outline"
-                    className={difficultyColor[project.difficulty as keyof typeof difficultyColor]}
+                    className={
+                      difficultyColor[
+                        project.difficulty as keyof typeof difficultyColor
+                      ]
+                    }
                   >
                     {project.difficulty}
                   </Badge>
@@ -195,7 +218,11 @@ const Projects = () => {
                     Start Project
                   </Button>
                   <Button variant="outline" size="icon" asChild>
-                    <a href={project.resources} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={project.resources}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   </Button>
@@ -205,8 +232,6 @@ const Projects = () => {
           ))}
         </div>
       </main>
-
-      <ChatbotPanel />
     </div>
   );
 };

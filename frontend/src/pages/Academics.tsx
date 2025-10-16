@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, BookOpen, Star, Plus, ChevronRight } from "lucide-react";
-import ChatbotPanel from "@/components/ChatbotPanel";
 
 const Academics = () => {
   const navigate = useNavigate();
@@ -110,8 +109,12 @@ const Academics = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Academic Planning</h1>
-              <p className="text-sm text-muted-foreground">Plan your courses and skill development</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Academic Planning
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Plan your courses and skill development
+              </p>
             </div>
           </div>
         </div>
@@ -149,7 +152,9 @@ const Academics = () => {
                           className="animate-fade-in"
                           style={{ animationDelay: `${index * 50}ms` }}
                         >
-                          <TableCell className="font-semibold">{course.code}</TableCell>
+                          <TableCell className="font-semibold">
+                            {course.code}
+                          </TableCell>
                           <TableCell>
                             <div>
                               <div className="font-medium">{course.name}</div>
@@ -161,7 +166,11 @@ const Academics = () => {
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {course.skills.slice(0, 2).map((skill) => (
-                                <Badge key={skill} variant="secondary" className="text-xs">
+                                <Badge
+                                  key={skill}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
                                   {skill}
                                 </Badge>
                               ))}
@@ -212,12 +221,16 @@ const Academics = () => {
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-foreground">{plan.semester}</h3>
+                      <h3 className="font-semibold text-foreground">
+                        {plan.semester}
+                      </h3>
                       <Badge variant="outline">{plan.credits} credits</Badge>
                     </div>
                     <div className="space-y-2">
                       {plan.courses.map((courseCode) => {
-                        const course = courses.find((c) => c.code === courseCode);
+                        const course = courses.find(
+                          (c) => c.code === courseCode
+                        );
                         return (
                           <div
                             key={courseCode}
@@ -249,7 +262,9 @@ const Academics = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-secondary/50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-primary">18</div>
-                    <div className="text-xs text-muted-foreground">Total Credits</div>
+                    <div className="text-xs text-muted-foreground">
+                      Total Credits
+                    </div>
                   </div>
                   <div className="bg-secondary/50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-primary">6</div>
@@ -257,7 +272,9 @@ const Academics = () => {
                   </div>
                   <div className="bg-secondary/50 rounded-lg p-3 text-center col-span-2">
                     <div className="text-2xl font-bold text-primary">3.8</div>
-                    <div className="text-xs text-muted-foreground">Target GPA</div>
+                    <div className="text-xs text-muted-foreground">
+                      Target GPA
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -265,8 +282,6 @@ const Academics = () => {
           </div>
         </div>
       </main>
-
-      <ChatbotPanel />
     </div>
   );
 };
