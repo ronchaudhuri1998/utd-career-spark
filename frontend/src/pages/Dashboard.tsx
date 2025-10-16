@@ -101,8 +101,7 @@ const Dashboard = () => {
           {agentCards.map((agent, index) => (
             <Card
               key={agent.id}
-              className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover animate-fade-in min-w-[350px] flex-1"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover min-w-[350px] flex-1"
             >
               <CardHeader
                 className={`bg-gradient-to-r ${agent.gradient} text-white py-4`}

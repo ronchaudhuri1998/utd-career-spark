@@ -147,11 +147,7 @@ const Academics = () => {
                     </TableHeader>
                     <TableBody>
                       {courses.map((course, index) => (
-                        <TableRow
-                          key={course.code}
-                          className="animate-fade-in"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
+                        <TableRow key={course.code}>
                           <TableCell className="font-semibold">
                             {course.code}
                           </TableCell>
@@ -217,8 +213,7 @@ const Academics = () => {
                 {recommendedPlan.map((plan, index) => (
                   <div
                     key={plan.semester}
-                    className="space-y-3 p-4 bg-secondary/50 rounded-lg animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
+                    className="space-y-3 p-4 bg-secondary/50 rounded-lg"
                   >
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-foreground">

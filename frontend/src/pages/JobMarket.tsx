@@ -148,8 +148,7 @@ const JobMarket = () => {
               {jobs.map((job, index) => (
                 <Card
                   key={job.id}
-                  className="shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="shadow-card hover:shadow-card-hover transition-all duration-300"
                 >
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -213,11 +212,7 @@ const JobMarket = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {trendingSkills.map((skill, index) => (
-                  <div
-                    key={skill.name}
-                    className="space-y-2 animate-fade-in"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
+                  <div key={skill.name} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{skill.name}</span>
                       <span className="text-muted-foreground">

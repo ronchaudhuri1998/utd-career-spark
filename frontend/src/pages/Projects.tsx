@@ -164,8 +164,7 @@ const Projects = () => {
           {projects.map((project, index) => (
             <Card
               key={project.id}
-              className="shadow-card hover:shadow-card-hover transition-all duration-300 animate-fade-in flex flex-col"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col"
             >
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
