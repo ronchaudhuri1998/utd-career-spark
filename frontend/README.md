@@ -1,73 +1,218 @@
-# Welcome to your Lovable project
+# Frontend - UTD Career Spark
 
-## Project info
+React-based frontend application for the UTD Career Spark platform, built with modern web technologies and best practices.
 
-**URL**: https://lovable.dev/projects/9986efb9-ddb2-4004-bd48-ba58dc8a60eb
+## 🛠️ Tech Stack
 
-## How can I edit this code?
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI component library
+- **React Router** - Client-side routing
+- **Lucide React** - Icons
 
-There are several ways of editing your application.
+## 🚀 Quick Start
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9986efb9-ddb2-4004-bd48-ba58dc8a60eb) and start prompting.
+- Node.js (v18 or higher)
+- npm or yarn
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation
 
-**Use your preferred IDE**
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd frontend
+   ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
 
-Follow these steps:
+4. **Open your browser:**
+   Navigate to `http://localhost:5173`
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📜 Available Scripts
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run build:dev` | Build for development |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🏗️ Project Structure
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+frontend/
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # Reusable UI components
+│   │   ├── ui/            # shadcn/ui components
+│   │   └── MainChatOverlay.tsx
+│   ├── contexts/          # React context providers
+│   │   └── UserDataContext.tsx
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Utility functions
+│   ├── pages/             # Page components
+│   │   ├── Dashboard.tsx
+│   │   ├── Academics.tsx
+│   │   ├── JobMarket.tsx
+│   │   ├── Projects.tsx
+│   │   └── Profile.tsx
+│   ├── App.tsx            # Main app component
+│   ├── main.tsx           # App entry point
+│   └── index.css          # Global styles
+├── components.json         # shadcn/ui configuration
+├── tailwind.config.ts     # Tailwind CSS configuration
+├── tsconfig.json          # TypeScript configuration
+└── vite.config.ts         # Vite configuration
 ```
 
-**Edit a file directly in GitHub**
+## 🎨 UI Components
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This project uses [shadcn/ui](https://ui.shadcn.com/) for consistent, accessible UI components. All components are located in `src/components/ui/`.
 
-**Use GitHub Codespaces**
+### Key Components
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Cards**: Dashboard cards with loading states
+- **Forms**: User profile and onboarding forms
+- **Navigation**: Responsive navigation and routing
+- **Chat Interface**: AI-powered career guidance chat
+- **Skeletons**: Loading state animations
 
-## What technologies are used for this project?
+## 🔧 Configuration
 
-This project is built with:
+### Environment Variables
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Create a `.env.local` file in the frontend directory:
 
-## How can I deploy this project?
+```env
+VITE_API_URL=http://localhost:8000
+VITE_APP_NAME=UTD Career Spark
+```
 
-Simply open [Lovable](https://lovable.dev/projects/9986efb9-ddb2-4004-bd48-ba58dc8a60eb) and click on Share -> Publish.
+### Tailwind CSS
 
-## Can I connect a custom domain to my Lovable project?
+The project uses Tailwind CSS for styling. Configuration is in `tailwind.config.ts`.
 
-Yes, you can!
+### TypeScript
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+TypeScript configuration is in `tsconfig.json`. The project uses strict type checking.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🚀 Development
+
+### Adding New Components
+
+1. **Create component file:**
+   ```bash
+   touch src/components/NewComponent.tsx
+   ```
+
+2. **Use shadcn/ui CLI for UI components:**
+   ```bash
+   npx shadcn@latest add button
+   ```
+
+### State Management
+
+The app uses React Context for state management:
+- `UserDataContext`: User profile and preferences
+- Local state for component-specific data
+
+### Routing
+
+Routes are defined in `App.tsx` using React Router:
+- `/` - Dashboard
+- `/academics` - Academic planning
+- `/job-market` - Job market overview
+- `/projects` - Project recommendations
+- `/profile` - User profile
+
+## 🎯 Key Features
+
+### Dashboard
+- Interactive agent cards
+- Real-time loading states
+- Responsive grid layout
+
+### Chat Interface
+- AI-powered career guidance
+- Tool call simulation
+- Real-time status updates
+
+### User Profile
+- Comprehensive onboarding
+- Skills and experience tracking
+- Academic information management
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Port already in use:**
+   ```bash
+   npm run dev -- --port 3001
+   ```
+
+2. **Dependencies issues:**
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+
+3. **TypeScript errors:**
+   ```bash
+   npm run lint
+   ```
+
+### Performance
+
+- Use React.memo for expensive components
+- Implement lazy loading for routes
+- Optimize images and assets
+
+## 📦 Building for Production
+
+1. **Build the application:**
+   ```bash
+   npm run build
+   ```
+
+2. **Preview the build:**
+   ```bash
+   npm run preview
+   ```
+
+3. **Deploy the `dist` folder** to your hosting service
+
+## 🧪 Testing
+
+Currently, the project doesn't have automated tests. Consider adding:
+- Unit tests with Jest and React Testing Library
+- Integration tests for key user flows
+- E2E tests with Playwright or Cypress
+
+## 📚 Resources
+
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Vite Guide](https://vitejs.dev/guide/)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs)
+- [shadcn/ui Components](https://ui.shadcn.com/)
+
+## 🤝 Contributing
+
+1. Follow the existing code style
+2. Use TypeScript for all new files
+3. Add proper prop types and interfaces
+4. Test your changes thoroughly
+5. Update documentation as needed
