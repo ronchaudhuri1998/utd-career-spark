@@ -22,6 +22,12 @@ export interface UserData {
   isOnboarded: boolean;
 }
 
+export interface SectionLoadingStates {
+  jobMarket: boolean;
+  projects: boolean;
+  academics: boolean;
+}
+
 export type UserDataField = keyof UserData;
 export type UserDataUpdate = Partial<UserData>;
 
@@ -31,6 +37,11 @@ interface UserDataContextType {
   setOnboarded: (onboarded: boolean) => void;
   resetUserData: () => void;
   isLoading: boolean;
+  sectionLoading: SectionLoadingStates;
+  setSectionLoading: (
+    section: keyof SectionLoadingStates,
+    loading: boolean
+  ) => void;
 }
 
 const defaultUserData: UserData = {
@@ -69,6 +80,12 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 }) => {
   const [userData, setUserData] = useState<UserData>(defaultUserData);
   const [isLoading, setIsLoading] = useState(true);
+  const [sectionLoading, setSectionLoadingState] =
+    useState<SectionLoadingStates>({
+      jobMarket: false,
+      projects: false,
+      academics: false,
+    });
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -132,12 +149,24 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     localStorage.removeItem("userData");
   };
 
+  const setSectionLoading = (
+    section: keyof SectionLoadingStates,
+    loading: boolean
+  ) => {
+    setSectionLoadingState((prev) => ({
+      ...prev,
+      [section]: loading,
+    }));
+  };
+
   const value: UserDataContextType = {
     userData,
     updateUserData,
     setOnboarded,
     resetUserData,
     isLoading,
+    sectionLoading,
+    setSectionLoading,
   };
 
   return (

@@ -4,15 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Send, Wrench, CheckCircle, Clock, Search, FileText, TrendingUp, User } from "lucide-react";
+import { useUserData } from "@/contexts/UserDataContext";
 
 interface Message {
   id: number;
   message: string;
   isUser: boolean;
-  type?: 'message' | 'tool_call' | 'action';
+  type?: "message" | "tool_call" | "action";
   toolName?: string;
-  toolArgs?: any;
-  status?: 'pending' | 'success' | 'error';
+  toolArgs?: Record<string, unknown>;
+  status?: "pending" | "success" | "error";
   result?: string;
 }
 
@@ -24,19 +25,42 @@ const MainChatOverlay = ({ className = "" }: MainChatOverlayProps) => {
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [showChatOverlay, setShowChatOverlay] = useState(false);
+  const { setSectionLoading } = useUserData();
 
   const getToolIcon = (toolName: string) => {
     switch (toolName) {
-      case "search_jobs":
+      case "job_market_overview":
         return <Search className="w-4 h-4" />;
-      case "analyze_profile":
+      case "projects_overview":
         return <User className="w-4 h-4" />;
-      case "generate_recommendations":
-        return <TrendingUp className="w-4 h-4" />;
-      case "create_plan":
+      case "academic_planning":
         return <FileText className="w-4 h-4" />;
       default:
         return <Wrench className="w-4 h-4" />;
+    }
+  };
+
+  const simulateAPICall = async (toolName: string, delay: number) => {
+    // Set loading state for the corresponding section
+    const sectionMap: {
+      [key: string]: "jobMarket" | "projects" | "academics";
+    } = {
+      job_market_overview: "jobMarket",
+      projects_overview: "projects",
+      academic_planning: "academics",
+    };
+
+    const section = sectionMap[toolName];
+    if (section) {
+      setSectionLoading(section, true);
+    }
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    // Clear loading state
+    if (section) {
+      setSectionLoading(section, false);
     }
   };
 
@@ -64,34 +88,36 @@ const MainChatOverlay = ({ className = "" }: MainChatOverlayProps) => {
     const toolCalls = [
       {
         id: Date.now() + 2,
-        toolName: "analyze_profile",
+        toolName: "job_market_overview",
         toolArgs: {
-          userId: "user123",
+          location: "Dallas, TX",
           skills: ["React", "Python", "Machine Learning"],
+          experience: "entry",
         },
-        message: "Analyzing your current profile and skills...",
+        message: "Fetching job market data and trending opportunities...",
       },
       {
         id: Date.now() + 3,
-        toolName: "search_jobs",
+        toolName: "projects_overview",
         toolArgs: {
-          location: "Dallas, TX",
-          skills: ["React", "Python"],
-          experience: "entry",
+          userId: "user123",
+          skills: ["React", "Python", "Machine Learning"],
+          difficulty: "intermediate",
         },
-        message: "Searching for relevant job opportunities...",
+        message:
+          "Analyzing your profile and generating project recommendations...",
       },
       {
         id: Date.now() + 4,
-        toolName: "generate_recommendations",
-        toolArgs: { profile: "analyzed", jobs: "found" },
-        message: "Generating personalized recommendations...",
-      },
-      {
-        id: Date.now() + 5,
-        toolName: "create_plan",
-        toolArgs: { recommendations: "generated", timeline: "6 months" },
-        message: "Creating a personalized career development plan...",
+        toolName: "academic_planning",
+        toolArgs: {
+          userId: "user123",
+          currentCourses: ["CS 3345", "CS 3305"],
+          targetGPA: "3.8",
+          graduationYear: "2025",
+        },
+        message:
+          "Creating personalized academic roadmap and course suggestions...",
       },
     ];
 
@@ -99,6 +125,7 @@ const MainChatOverlay = ({ className = "" }: MainChatOverlayProps) => {
     toolCalls.forEach((toolCall) => {
       messages.push({
         ...toolCall,
+        isUser: false,
         type: "tool_call" as const,
         status: "pending" as const,
       });
@@ -126,24 +153,29 @@ const MainChatOverlay = ({ className = "" }: MainChatOverlayProps) => {
 
       // Add messages with delays to simulate real-time processing
       for (let i = 0; i < messages.length; i++) {
-        setTimeout(() => {
+        setTimeout(async () => {
           setChatHistory((prev) => [...prev, messages[i]]);
 
-          // Update tool call status after a delay
+          // Update tool call status after a delay and simulate API call
           if (messages[i].type === "tool_call") {
-            setTimeout(() => {
-              setChatHistory((prev) =>
-                prev.map((msg) =>
-                  msg.id === messages[i].id
-                    ? {
-                        ...msg,
-                        status: "success" as const,
-                        result: "Completed successfully",
-                      }
-                    : msg
-                )
-              );
-            }, 2000 + i * 1000);
+            const toolName = messages[i].toolName;
+            const delay = 2000 + i * 1000; // Vary delay for each tool call
+
+            // Simulate API call
+            await simulateAPICall(toolName!, delay);
+
+            // Update status to success
+            setChatHistory((prev) =>
+              prev.map((msg) =>
+                msg.id === messages[i].id
+                  ? {
+                      ...msg,
+                      status: "success" as const,
+                      result: "API call completed successfully",
+                    }
+                  : msg
+              )
+            );
           }
         }, i * 1500);
       }
