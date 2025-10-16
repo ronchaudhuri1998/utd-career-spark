@@ -2,12 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Briefcase, Lightbulb, BookOpen, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Briefcase,
+  Lightbulb,
+  BookOpen,
+  ArrowRight,
+  Sparkles,
+  User,
+} from "lucide-react";
 import ChatbotPanel from "@/components/ChatbotPanel";
+import { useUserData } from "@/contexts/UserDataContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { userData } = useUserData();
 
   const agentCards = [
     {
@@ -54,51 +62,43 @@ const Dashboard = () => {
       metrics: [
         { label: "Courses", value: "8" },
         { label: "Credits", value: "24" },
-        { label: "GPA Goal", value: "3.8" },
+        { label: "GPA Goal", value: userData.gpa || "3.8" },
       ],
-      highlights: [
-        "CS 4375 - Machine Learning",
-        "CS 4365 - Artificial Intelligence",
-        "CS 4390 - Computer Networks",
-      ],
+      highlights:
+        userData.skills.length > 0
+          ? userData.skills.slice(0, 3)
+          : [
+              "CS 4375 - Machine Learning",
+              "CS 4365 - Artificial Intelligence",
+              "CS 4390 - Computer Networks",
+            ],
       route: "/academics",
       gradient: "from-purple-500 to-pink-500",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">UTD Career Guidance</h1>
-                <p className="text-sm text-muted-foreground">Welcome back! 👋</p>
-              </div>
-            </div>
-            <Badge variant="secondary" className="gap-2">
-              <TrendingUp className="w-3 h-3" />
-              Career: Data Scientist
-            </Badge>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-subtle flex flex-col relative">
+      {/* Profile Button */}
+      <Button
+        onClick={() => navigate("/profile")}
+        className="fixed top-6 right-6 z-50 bg-primary hover:bg-primary/90 rounded-full w-12 h-12 p-0 shadow-lg"
+      >
+        <User className="w-5 h-5" />
+      </Button>
 
       {/* Main Grid */}
-      <main className="container mx-auto px-6 py-8">
-        <div className="flex flex-row gap-6 h-[calc(100vh-180px)] overflow-x-auto">
+      <main className="w-full flex-1 flex flex-col">
+        <div className="flex flex-row gap-6 flex-1 p-6">
           {agentCards.map((agent, index) => (
             <Card
               key={agent.id}
               className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover animate-fade-in min-w-[350px] flex-1"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <CardHeader className={`bg-gradient-to-r ${agent.gradient} text-white`}>
+              <CardHeader
+                className={`bg-gradient-to-r ${agent.gradient} text-white`}
+              >
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                     <agent.icon className="w-6 h-6" />

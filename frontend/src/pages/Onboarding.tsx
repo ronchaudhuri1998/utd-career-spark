@@ -5,23 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { GraduationCap, Upload, Target, Code } from "lucide-react";
+import { GraduationCap, Upload, Target } from "lucide-react";
 import { toast } from "sonner";
+import { useUserData } from "@/contexts/UserDataContext";
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { userData, updateUserData, setOnboarded } = useUserData();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    careerGoal: "",
+    careerGoal: userData.careerGoal || "",
     resume: null as File | null,
-    major: "",
-    skills: {
-      python: 50,
-      sql: 50,
-      javascript: 50,
-      dataAnalysis: 50,
-    }
+    major: userData.major || "",
   });
 
   const handleContinue = () => {
@@ -29,7 +24,15 @@ const Onboarding = () => {
       toast.error("Please enter your career goal");
       return;
     }
-    if (step === 4) {
+    if (step === 3) {
+      // Save all form data to user context
+      updateUserData({
+        careerGoal: formData.careerGoal,
+        major: formData.major,
+        bio: `Passionate ${formData.major} student focused on ${formData.careerGoal}. Looking to make an impact in the tech industry through innovative solutions.`,
+      });
+
+      setOnboarded(true);
       toast.success("Profile created successfully!");
       navigate("/dashboard");
     } else {
@@ -55,7 +58,7 @@ const Onboarding = () => {
         <div className="bg-card rounded-2xl shadow-elegant p-8 border border-border">
           {/* Progress indicator */}
           <div className="flex gap-2 mb-8">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div
                 key={i}
                 className={`h-2 flex-1 rounded-full transition-all duration-300 ${
@@ -70,7 +73,9 @@ const Onboarding = () => {
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-4">
                 <Target className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-semibold">What's your career goal?</h2>
+                <h2 className="text-2xl font-semibold">
+                  What's your career goal?
+                </h2>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="career-goal">Career Goal</Label>
@@ -78,7 +83,9 @@ const Onboarding = () => {
                   id="career-goal"
                   placeholder="e.g., Data Scientist, Software Engineer, Product Manager..."
                   value={formData.careerGoal}
-                  onChange={(e) => setFormData({ ...formData, careerGoal: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, careerGoal: e.target.value })
+                  }
                   className="min-h-[120px] resize-none"
                 />
               </div>
@@ -90,19 +97,28 @@ const Onboarding = () => {
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-4">
                 <Upload className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-semibold">Upload your resume (optional)</h2>
+                <h2 className="text-2xl font-semibold">
+                  Upload your resume (optional)
+                </h2>
               </div>
               <div className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer">
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground mb-2">
                   Drag and drop your resume here, or click to browse
                 </p>
-                <p className="text-sm text-muted-foreground">PDF, DOC, DOCX up to 10MB</p>
+                <p className="text-sm text-muted-foreground">
+                  PDF, DOC, DOCX up to 10MB
+                </p>
                 <Input
                   type="file"
                   className="hidden"
                   accept=".pdf,.doc,.docx"
-                  onChange={(e) => setFormData({ ...formData, resume: e.target.files?.[0] || null })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      resume: e.target.files?.[0] || null,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -117,7 +133,12 @@ const Onboarding = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="major">Major</Label>
-                <Select value={formData.major} onValueChange={(value) => setFormData({ ...formData, major: value })}>
+                <Select
+                  value={formData.major}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, major: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select your major" />
                   </SelectTrigger>
@@ -129,38 +150,6 @@ const Onboarding = () => {
                     <SelectItem value="ce">Computer Engineering</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Skills */}
-          {step === 4 && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex items-center gap-3 mb-4">
-                <Code className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-semibold">Rate your skill levels</h2>
-              </div>
-              <div className="space-y-6">
-                {Object.entries(formData.skills).map(([skill, value]) => (
-                  <div key={skill} className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label className="capitalize">{skill.replace(/([A-Z])/g, ' $1').trim()}</Label>
-                      <span className="text-sm text-muted-foreground">{value}%</span>
-                    </div>
-                    <Slider
-                      value={[value]}
-                      onValueChange={([newValue]) =>
-                        setFormData({
-                          ...formData,
-                          skills: { ...formData.skills, [skill]: newValue }
-                        })
-                      }
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -180,7 +169,7 @@ const Onboarding = () => {
               onClick={handleContinue}
               className="flex-1 bg-gradient-primary hover:opacity-90 transition-opacity"
             >
-              {step === 4 ? "Continue to Dashboard" : "Next"}
+              {step === 3 ? "Continue to Dashboard" : "Next"}
             </Button>
           </div>
         </div>
