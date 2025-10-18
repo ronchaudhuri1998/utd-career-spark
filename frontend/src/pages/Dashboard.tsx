@@ -1,304 +1,179 @@
-import React from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Briefcase,
-  Lightbulb,
-  BookOpen,
-  ArrowRight,
-  Sparkles,
-  User,
-  TrendingUp,
-  MapPin,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, BookOpen, MessageCircle, Sparkles, User } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
 import MainChatOverlay from "@/components/MainChatOverlay";
 
+const textToList = (text: string) =>
+  text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+const MAX_ITEMS = 4;
+
+const InsightsCard = ({
+  icon: Icon,
+  title,
+  subtitle,
+  items,
+  emptyMessage,
+  navigating,
+  loading,
+}: {
+  icon: typeof Briefcase;
+  title: string;
+  subtitle: string;
+  items: string[];
+  emptyMessage: string;
+  navigating: () => void;
+  loading: boolean;
+}) => (
+  <Card className="border-2 shadow-card hover:border-primary/30 transition-colors">
+    <CardHeader className="flex flex-row items-start justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-gradient-primary text-white shadow-sm">
+          <Icon className="w-5 h-5" />
+        </div>
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+      </div>
+      <Badge variant={loading ? "secondary" : "outline"}>
+        {loading ? "Refreshing" : "Ready"}
+      </Badge>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      {loading ? (
+        <p className="text-sm text-muted-foreground animate-pulse">
+          Agents are gathering the latest insights...
+        </p>
+      ) : items.length ? (
+        <ul className="space-y-2">
+          {items.slice(0, MAX_ITEMS).map((line, idx) => (
+            <li key={`${title}-${idx}`} className="text-sm text-foreground leading-relaxed flex gap-2">
+              <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+      )}
+      <Button onClick={navigating} variant="outline" className="justify-start gap-2">
+        View full dashboard
+      </Button>
+    </CardContent>
+  </Card>
+);
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { userData, sectionLoading } = useUserData();
+  const { userData, agentOutputs, sectionLoading } = useUserData();
 
-  const renderCardSkeleton = (agent: {
-    id: string;
-    title: string;
-    icon: React.ComponentType<{ className?: string }>;
-    gradient: string;
-  }) => (
-    <Card className="flex flex-col overflow-hidden border-2 min-w-[350px] flex-1">
-      <CardHeader
-        className={`bg-gradient-to-r ${agent.gradient} text-white py-4`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
-            <agent.icon className="w-5 h-5" />
-          </div>
-          <CardTitle className="text-white text-lg">{agent.title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Metrics Skeleton */}
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-secondary/50 rounded-lg p-3 text-center">
-              <Skeleton className="h-8 w-16 mx-auto mb-2" />
-              <Skeleton className="h-3 w-20 mx-auto" />
-            </div>
-          ))}
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-32" />
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        </div>
-
-        {/* Button Skeleton */}
-        <Skeleton className="h-10 w-full" />
-      </CardContent>
-    </Card>
+  const jobMarketLines = useMemo(
+    () => textToList(agentOutputs.jobMarket),
+    [agentOutputs.jobMarket]
+  );
+  const coursePlanLines = useMemo(
+    () => textToList(agentOutputs.coursePlan),
+    [agentOutputs.coursePlan]
+  );
+  const finalPlanHighlights = useMemo(
+    () => textToList(agentOutputs.finalPlan).slice(0, MAX_ITEMS),
+    [agentOutputs.finalPlan]
   );
 
-  const agentCards = [
-    {
-      id: "job-market",
-      title: "Job Market Overview",
-      icon: Briefcase,
-      description: "Explore trending roles and opportunities",
-      metrics: [
-        { label: "Open Positions", value: "1,247" },
-        { label: "Avg Salary", value: "$95K" },
-        { label: "Match Score", value: "87%" },
-      ],
-      trendingSkills: [
-        { skill: "Python", trend: "+39%" },
-        { skill: "Machine Learning", trend: "+28%" },
-        { skill: "React", trend: "+45%" },
-        { skill: "AWS", trend: "+32%" },
-      ],
-      jobAvailability: [
-        { role: "Frontend Dev", trend: "+23%" },
-        { role: "Backend Dev", trend: "-16%" },
-        { role: "Data Scientist", trend: "+31%" },
-      ],
-      location: userData.location || "Dallas, TX",
-      route: "/job-market",
-      gradient: "from-orange-500 to-amber-500",
-    },
-    {
-      id: "projects",
-      title: "Projects Overview",
-      icon: Lightbulb,
-      description: "Discover project ideas to build your portfolio",
-      metrics: [
-        { label: "Recommended", value: "12" },
-        { label: "Difficulty", value: "Medium" },
-        { label: "Completion", value: "35%" },
-      ],
-      highlights: [
-        "ML Image Classification Project",
-        "Real-time Analytics Dashboard",
-        "NLP Sentiment Analysis Tool",
-      ],
-      route: "/projects",
-      gradient: "from-blue-500 to-cyan-500",
-    },
-    {
-      id: "academics",
-      title: "Academic Planning",
-      icon: BookOpen,
-      description: "Plan your courses and skill development",
-      metrics: [
-        { label: "Courses", value: "8" },
-        { label: "Credits", value: "24" },
-        { label: "GPA Goal", value: userData.gpa || "3.8" },
-      ],
-      highlights:
-        userData.skills.length > 0
-          ? userData.skills.slice(0, 3)
-          : [
-              "CS 4375 - Machine Learning",
-              "CS 4365 - Artificial Intelligence",
-              "CS 4390 - Computer Networks",
-            ],
-      route: "/academics",
-      gradient: "from-purple-500 to-pink-500",
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-subtle flex flex-col relative">
-      {/* Profile Button */}
-      <Button
-        onClick={() => navigate("/profile")}
-        className="fixed top-6 right-6 z-50 bg-primary hover:bg-primary/90 rounded-full w-12 h-12 p-0 shadow-lg"
-      >
-        <User className="w-5 h-5" />
-      </Button>
+    <div className="min-h-screen bg-gradient-subtle">
+      <header className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-primary" />
+              Your AI Career Copilot
+            </h1>
+            <p className="text-muted-foreground">
+              Personalized roadmap for {userData.name || "you"} targeting{" "}
+              {userData.careerGoal || "your dream role"}.
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate("/profile")}
+            className="rounded-full w-fit px-5 bg-primary hover:bg-primary/90"
+          >
+            <User className="w-4 h-4 mr-2" />
+            Profile & Preferences
+          </Button>
+        </div>
+      </header>
 
-      {/* Main Grid */}
-      <main className="w-full flex-1 flex flex-col">
-        <div className="flex flex-row gap-6 flex-1 p-6">
-          {agentCards.map((agent, index) => {
-            const isLoading =
-              (agent.id === "job-market" && sectionLoading.jobMarket) ||
-              (agent.id === "projects" && sectionLoading.projects) ||
-              (agent.id === "academics" && sectionLoading.academics);
+      <main className="container mx-auto px-6 py-8 space-y-8">
+        <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+          <div className="space-y-6">
+            <InsightsCard
+              icon={Briefcase}
+              title="Job Market Dashboard"
+              subtitle="Roles, employers, and salary signals powering your plan"
+              items={jobMarketLines}
+              emptyMessage="Generate a plan to see current job market highlights."
+              navigating={() => navigate("/job-market")}
+              loading={sectionLoading.jobMarket}
+            />
 
-            if (isLoading) {
-              return renderCardSkeleton(agent);
-            }
+            <InsightsCard
+              icon={BookOpen}
+              title="Course Dashboard"
+              subtitle="Courses and campus resources aligned with your goal"
+              items={coursePlanLines}
+              emptyMessage="Generate a plan to unlock your tailored course roadmap."
+              navigating={() => navigate("/academics")}
+              loading={sectionLoading.academics}
+            />
+          </div>
 
-            return (
-              <Card
-                key={agent.id}
-                className="flex flex-col overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-card-hover min-w-[350px] flex-1"
-              >
-                <CardHeader
-                  className={`bg-gradient-to-r ${agent.gradient} text-white py-4`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                      <agent.icon className="w-5 h-5" />
-                    </div>
-                    <CardTitle className="text-white text-lg">
-                      {agent.title}
-                    </CardTitle>
+          <div className="space-y-6">
+            <Card className="border-2 shadow-card">
+              <CardHeader className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 bg-primary/10 rounded-full">
+                    <MessageCircle className="w-5 h-5 text-primary" />
                   </div>
-                </CardHeader>
-
-                <CardContent className="flex-1 overflow-y-auto p-6 space-y-6">
-                  {/* Metrics */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {agent.metrics.map((metric) => (
-                      <div
-                        key={metric.label}
-                        className="bg-secondary/50 rounded-lg p-3 text-center"
-                      >
-                        <div className="text-2xl font-bold text-foreground">
-                          {metric.value}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {metric.label}
-                        </div>
-                      </div>
+                  <div>
+                    <CardTitle className="text-lg">Career Copilot Chat</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Ask follow-up questions or explore next steps anytime.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {finalPlanHighlights.length ? (
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {finalPlanHighlights.map((line, idx) => (
+                      <li key={`plan-highlight-${idx}`} className="flex gap-2 leading-relaxed">
+                        <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>{line}</span>
+                      </li>
                     ))}
-                  </div>
-
-                  {/* Job Market Specific Content */}
-                  {agent.id === "job-market" ? (
-                    <div className="space-y-4">
-                      {/* Trending Skills */}
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-primary" />
-                          Trending Skills
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {agent.trendingSkills?.map((skillData, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5"
-                            >
-                              <span className="text-sm font-medium text-foreground">
-                                {skillData.skill}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3 text-green-600" />
-                                <span className="text-xs font-bold text-green-600">
-                                  {skillData.trend}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Job Availability */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            Job Availability
-                          </h4>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            <span>in {agent.location}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {agent.jobAvailability?.map((job, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
-                            >
-                              <div className="flex items-center gap-2">
-                                <TrendingUp
-                                  className={`w-4 h-4 ${
-                                    job.trend.startsWith("+")
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  }`}
-                                />
-                                <span className="text-sm font-medium text-foreground">
-                                  {job.role}
-                                </span>
-                                <span
-                                  className={`text-sm font-bold ${
-                                    job.trend.startsWith("+")
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {job.trend}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Highlights for other cards */
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        Key Highlights
-                      </h4>
-                      <ul className="space-y-2">
-                        {agent.highlights.map((highlight, i) => (
-                          <li
-                            key={i}
-                            className="text-sm text-muted-foreground flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5" />
-                            {highlight}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Action Button */}
-                  <Button
-                    onClick={() => navigate(agent.route)}
-                    className="w-full bg-gradient-primary hover:opacity-90 transition-opacity group"
-                  >
-                    Open {agent.title.split(" ")[0]}
-                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Once your roadmap is generated, highlights will appear here. Use the chat bubble to ask anything.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  The floating chat bubble stays active, so you can refine your plan or request interview prep whenever you like.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
-
       <MainChatOverlay />
     </div>
   );

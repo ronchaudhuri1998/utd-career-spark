@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+frontend/.turbo/
+frontend/.parcel-cache/
+frontend/*.log
+*.log

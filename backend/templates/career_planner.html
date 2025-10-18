@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTD Career Guidance Planner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: radial-gradient(circle at top left, #eef2ff, #f8fafc 55%);
+            min-height: 100vh;
+        }
+        .hero-card {
+            background: linear-gradient(135deg, #1d4ed8, #312e81);
+            color: #ffffff;
+            border-radius: 18px;
+            padding: 3rem;
+            box-shadow: 0 25px 60px rgba(37, 99, 235, 0.35);
+        }
+        .hero-card .badge {
+            font-size: 0.75rem;
+            letter-spacing: 0.1rem;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 2.5rem;
+        }
+        .timeline::before {
+            content: "";
+            position: absolute;
+            top: 0.5rem;
+            bottom: 0.5rem;
+            left: 18px;
+            width: 2px;
+            background: linear-gradient(180deg, rgba(59,130,246,0.4), rgba(59,130,246,0));
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-icon {
+            position: absolute;
+            left: -2.2rem;
+            top: 0.4rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.25);
+        }
+        .timeline-content {
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        }
+        .output-block {
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            color: #0f172a;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            border: 1px solid #e2e8f0;
+        }
+        .final-plan {
+            white-space: pre-wrap;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 24px 45px rgba(15, 23, 42, 0.1);
+        }
+        @media (max-width: 576px) {
+            .hero-card {
+                padding: 2rem;
+            }
+            .timeline {
+                padding-left: 1.5rem;
+            }
+            .timeline-icon {
+                left: -1.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="hero-card mb-5">
+                    <span class="badge text-bg-light text-uppercase mb-3">UT Dallas Hackathon</span>
+                    <h1 class="display-6 fw-bold mb-3">Career Guidance Copilot</h1>
+                    <p class="lead mb-4">
+                        Four Claude-powered agents coordinate live labor-market scraping, UTD course mapping,
+                        project ideation, and plan orchestration to craft a ready-to-share roadmap.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <span class="badge rounded-pill text-bg-primary bg-opacity-25 text-white border border-light">Job Market Agent</span>
+                        <span class="badge rounded-pill text-bg-secondary bg-opacity-25 text-white border border-light">Course Catalog Agent</span>
+                        <span class="badge rounded-pill text-bg-warning bg-opacity-25 text-white border border-light">Project Advisor</span>
+                        <span class="badge rounded-pill text-bg-success bg-opacity-25 text-white border border-light">Career Planner</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <form method="post" class="card border-0 shadow-sm mb-5" onsubmit="return handleSubmit(this);">
+                    <div class="card-body p-4 p-lg-5">
+                        <label for="goal" class="form-label fs-5">What career outcome are you targeting?</label>
+                        <div class="input-group input-group-lg">
+                            <input
+                                type="text"
+                                class="form-control form-control-lg"
+                                id="goal"
+                                name="goal"
+                                placeholder="e.g., Transition into a machine learning engineer role in healthcare"
+                                value="{{ goal }}"
+                                required
+                            >
+                            <button id="submit-btn" type="submit" class="btn btn-primary btn-lg px-4">
+                                <span class="default-text"><i class="fas fa-bolt me-2"></i>Generate Roadmap</span>
+                                <span class="loading-text d-none"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Working...</span>
+                            </button>
+                        </div>
+                        <small class="text-muted d-block mt-3">
+                            JobMarketAgent now scrapes Hacker News Hiring and ITJobsWatch before the other agents plan around those real-time signals.
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body d-flex flex-column flex-lg-row align-items-start gap-3">
+                        <div>
+                            <span class="badge text-bg-dark text-uppercase mb-2">AgentCore</span>
+                            <h5 class="mb-2">
+                                {% if agentcore_info.available %}
+                                AgentCore Active
+                                {% else %}
+                                AgentCore Inactive
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted small mb-1">{{ agentcore_info.status }}</p>
+                            {% if agentcore_info.memory_id %}
+                            <p class="text-muted small mb-1">Memory ID: {{ agentcore_info.memory_id }}</p>
+                            {% endif %}
+                            {% if session_id %}
+                            <p class="text-muted small mb-0">Session ID: {{ session_id }}</p>
+                            {% endif %}
+                        </div>
+                        {% if result %}
+                        <div class="ms-lg-auto">
+                            <button
+                                id="toggle-workflow"
+                                type="button"
+                                class="btn btn-outline-primary"
+                                aria-expanded="false"
+                                aria-controls="workflow-panel"
+                                data-show-text="Show background agent workflow ({{ result.trace|length }})"
+                                data-hide-text="Hide background agent workflow"
+                            >
+                                <i class="fas fa-diagram-project me-2"></i>
+                                <span class="label">Show background agent workflow ({{ result.trace|length }})</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="alert alert-danger shadow-sm">{{ error }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if result %}
+        <div class="row justify-content-center">
+            <div class="col-lg-5 mb-4 d-none" id="workflow-panel">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <span class="badge text-bg-primary mb-2">Agent Timeline</span>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                            {% if agentcore_info.available %}
+                            <span class="badge text-bg-success">AgentCore Logged</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">AgentCore Offline</span>
+                            {% endif %}
+                            <span class="badge text-bg-light text-dark">Steps: {{ result.trace|length }}</span>
+                            {% if session_id %}
+                            <span class="text-muted small">Session {{ session_id }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted mb-4">
+                            Each block captures how a specialized agent contributed to your plan.
+                            Expand entries to inspect Claude's raw output and scraped evidence.
+                        </p>
+                        <div class="timeline">
+                            {% for entry in result.trace %}
+                            {% set meta = agent_meta.get(entry.agent, {'label': entry.agent, 'color': 'dark', 'icon': 'robot'}) %}
+                            <div class="timeline-item">
+                                <div class="timeline-icon bg-{{ meta.color }}">
+                                    <i class="fas fa-{{ meta.icon }}"></i>
+                                </div>
+                                <div class="timeline-content card border-0">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge text-bg-{{ meta.color }} bg-opacity-25 text-uppercase">{{ meta.label }}</span>
+                                            <span class="text-muted small">{{ loop.index }}/{{ result.trace|length }}</span>
+                                        </div>
+                                        <h5 class="card-title mb-3">{{ entry.event }}</h5>
+                                        {% if entry.output %}
+                                        <div class="output-block">{{ entry.output | replace('\n', '<br>') | safe }}</div>
+                                        {% else %}
+                                        <div class="text-muted fst-italic">No direct output captured.</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <span class="badge text-bg-success mb-2">Final Roadmap</span>
+                        <h2 class="h4 mb-3">Career plan for “{{ goal }}”</h2>
+                        <div class="final-plan">{{ result.final_plan | replace('\n', '<br>') | safe }}</div>
+                        <p class="text-muted small mt-3 mb-0">
+                            Use “Show background agent workflow” to inspect how each agent contributed{% if agentcore_info.available %} and what AgentCore stored for this session{% endif %}.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+    function handleSubmit(form) {
+        const button = document.getElementById('submit-btn');
+        const defaultText = button.querySelector('.default-text');
+        const loadingText = button.querySelector('.loading-text');
+        button.disabled = true;
+        defaultText.classList.add('d-none');
+        loadingText.classList.remove('d-none');
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleButton = document.getElementById('toggle-workflow');
+        const workflowPanel = document.getElementById('workflow-panel');
+
+        if (!toggleButton || !workflowPanel) {
+            return;
+        }
+
+        const labelEl = toggleButton.querySelector('.label');
+        const showText = toggleButton.dataset.showText || 'Show background agent workflow';
+        const hideText = toggleButton.dataset.hideText || 'Hide background agent workflow';
+
+        toggleButton.addEventListener('click', function () {
+            const isHidden = workflowPanel.classList.toggle('d-none');
+            toggleButton.setAttribute('aria-expanded', String(!isHidden));
+            toggleButton.classList.toggle('btn-outline-primary', isHidden);
+            toggleButton.classList.toggle('btn-primary', !isHidden);
+            if (labelEl) {
+                labelEl.textContent = isHidden ? showText : hideText;
+            }
+        });
+    });
+    </script>
+</body>
+</html>
