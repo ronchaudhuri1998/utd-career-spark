@@ -32,39 +32,48 @@ const InsightsCard = ({
   navigating: () => void;
   loading: boolean;
 }) => (
-  <Card className="border-2 shadow-card hover:border-primary/30 transition-colors">
-    <CardHeader className="flex flex-row items-start justify-between gap-3">
+  <Card className="border-2 shadow-card hover:border-primary/30 transition-colors h-full flex flex-col">
+    <CardHeader className="flex flex-row items-start justify-between gap-3 flex-shrink-0">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-gradient-primary text-white shadow-sm">
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <CardTitle>{title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
+          <CardTitle className="text-base">{title}</CardTitle>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
-      <Badge variant={loading ? "secondary" : "outline"}>
+      <Badge variant={loading ? "secondary" : "outline"} className="text-xs">
         {loading ? "Refreshing" : "Ready"}
       </Badge>
     </CardHeader>
-    <CardContent className="space-y-4">
-      {loading ? (
-        <p className="text-sm text-muted-foreground animate-pulse">
-          Agents are gathering the latest insights...
-        </p>
-      ) : items.length ? (
-        <ul className="space-y-2">
-          {items.slice(0, MAX_ITEMS).map((line, idx) => (
-            <li key={`${title}-${idx}`} className="text-sm text-foreground leading-relaxed flex gap-2">
-              <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary" />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
-      )}
-      <Button onClick={navigating} variant="outline" className="justify-start gap-2">
+    <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {loading ? (
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Agents are gathering the latest insights...
+          </p>
+        ) : items.length ? (
+          <ul className="space-y-2 h-full overflow-y-auto pr-2">
+            {items.slice(0, MAX_ITEMS).map((line, idx) => (
+              <li
+                key={`${title}-${idx}`}
+                className="text-sm text-foreground leading-relaxed flex gap-2"
+              >
+                <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="break-words">{line}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        )}
+      </div>
+      <Button
+        onClick={navigating}
+        variant="outline"
+        className="justify-start gap-2 text-sm flex-shrink-0"
+      >
         View full dashboard
       </Button>
     </CardContent>
@@ -112,76 +121,39 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 space-y-8">
-        <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-          <div className="space-y-6">
-            <InsightsCard
-              icon={Briefcase}
-              title="Job Market Dashboard"
-              subtitle="Roles, employers, and salary signals powering your plan"
-              items={jobMarketLines}
-              emptyMessage="Generate a plan to see current job market highlights."
-              navigating={() => navigate("/job-market")}
-              loading={sectionLoading.jobMarket}
-            />
+      <main className="container mx-auto px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] max-h-[calc(100vh-12rem)]">
+          <div className="flex flex-col gap-4 flex-1 min-w-0 lg:max-w-[66.666%]">
+            <div className="flex-1 min-h-[280px] max-h-[50%]">
+              <InsightsCard
+                icon={Briefcase}
+                title="Job Market Dashboard"
+                subtitle="Roles, employers, and salary signals powering your plan"
+                items={jobMarketLines}
+                emptyMessage="Generate a plan to see current job market highlights."
+                navigating={() => navigate("/job-market")}
+                loading={sectionLoading.jobMarket}
+              />
+            </div>
 
-            <InsightsCard
-              icon={BookOpen}
-              title="Course Dashboard"
-              subtitle="Courses and campus resources aligned with your goal"
-              items={coursePlanLines}
-              emptyMessage="Generate a plan to unlock your tailored course roadmap."
-              navigating={() => navigate("/academics")}
-              loading={sectionLoading.academics}
-            />
+            <div className="flex-1 min-h-[280px] max-h-[50%]">
+              <InsightsCard
+                icon={BookOpen}
+                title="Course Dashboard"
+                subtitle="Courses and campus resources aligned with your goal"
+                items={coursePlanLines}
+                emptyMessage="Generate a plan to unlock your tailored course roadmap."
+                navigating={() => navigate("/academics")}
+                loading={sectionLoading.academics}
+              />
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <Card className="border-2 shadow-card">
-              <CardHeader className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <div className="inline-flex items-center justify-center w-10 h-10 bg-primary/10 rounded-full">
-                    <MessageCircle className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">
-                      Career Copilot Chat
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Ask follow-up questions or explore next steps anytime.
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {finalPlanHighlights.length ? (
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {finalPlanHighlights.map((line, idx) => (
-                      <li
-                        key={`plan-highlight-${idx}`}
-                        className="flex gap-2 leading-relaxed"
-                      >
-                        <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary" />
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Once your roadmap is generated, highlights will appear here.
-                    Use the chat bubble to ask anything.
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  The floating chat bubble stays active, so you can refine your
-                  plan or request interview prep whenever you like.
-                </p>
-              </CardContent>
-            </Card>
+          <div className="flex-1 min-h-[400px] lg:min-h-[600px] lg:max-w-[33.333%] lg:min-w-[300px]">
+            <MainChatOverlayStreaming />
           </div>
         </div>
       </main>
-      <MainChatOverlayStreaming />
     </div>
   );
 };

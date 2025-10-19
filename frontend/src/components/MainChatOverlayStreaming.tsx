@@ -32,7 +32,6 @@ const MainChatOverlayStreaming = ({
 
   const [chatMessage, setChatMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
 
   const handleSendMessage = async () => {
     const trimmed = chatMessage.trim();
@@ -65,26 +64,22 @@ const MainChatOverlayStreaming = ({
   };
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
-      <Card
-        className={`w-96 shadow-lg transition-all duration-300 ${
-          isMinimized ? "h-16" : "h-[600px]"
-        }`}
-      >
+    <div className={`${className} h-full min-h-[400px] max-h-[800px]`}>
+      <Card className="w-full shadow-xl border-2 border-border bg-card/95 backdrop-blur-sm transition-all duration-300 h-full flex flex-col">
         <ChatHeader
           isConnected={isConnected}
-          isMinimized={isMinimized}
-          onToggleMinimize={() => setIsMinimized(!isMinimized)}
+          isMinimized={false}
+          onToggleMinimize={() => {}}
         />
-        <CardContent className="flex flex-col h-[calc(100%-4rem)] p-0">
-          <div className="flex-1 overflow-hidden">
+        <CardContent className="flex flex-col flex-1 min-h-0 p-0">
+          <div className="flex-1 overflow-hidden min-h-0">
             <ChatHistory
               messages={chatHistory}
               agentBadgeIntent={agentBadgeIntent}
               isLoading={isRunning}
             />
           </div>
-          <div className="p-6 pt-3">
+          <div className="p-6 pt-3 flex-shrink-0">
             <ChatInput
               message={chatMessage}
               onMessageChange={setChatMessage}
