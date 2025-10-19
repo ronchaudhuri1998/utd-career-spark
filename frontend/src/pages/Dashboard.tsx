@@ -10,6 +10,7 @@ import {
   Sparkles,
   User,
   Bug,
+  Code,
 } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -31,6 +32,8 @@ const InsightsCard = ({
   emptyMessage,
   navigating,
   loading,
+  agentName,
+  runningAgents,
 }: {
   icon: typeof Briefcase;
   title: string;
@@ -39,54 +42,87 @@ const InsightsCard = ({
   emptyMessage: string;
   navigating: () => void;
   loading: boolean;
-}) => (
-  <Card className="border-2 shadow-card hover:border-primary/30 transition-colors h-full flex flex-col">
-    <CardHeader className="flex flex-row items-start justify-between gap-3 flex-shrink-0">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-gradient-primary text-white shadow-sm">
-          <Icon className="w-5 h-5" />
+  agentName: string;
+  runningAgents: string[];
+}) => {
+  const isAgentRunning = runningAgents.includes(agentName);
+  const showLoading = loading || isAgentRunning;
+
+  return (
+    <Card
+      className={`border-2 shadow-card hover:border-primary/30 transition-colors h-full flex flex-col ${
+        isAgentRunning ? "border-primary/50 animate-pulse" : ""
+      }`}
+    >
+      <CardHeader className="flex flex-row items-start justify-between gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div
+            className={`p-2 rounded-lg bg-gradient-primary text-white shadow-sm ${
+              isAgentRunning ? "animate-spin" : ""
+            }`}
+          >
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <CardTitle className="text-base">{title}</CardTitle>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          </div>
         </div>
-        <div>
-          <CardTitle className="text-base">{title}</CardTitle>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <Badge
+          variant={showLoading ? "secondary" : "outline"}
+          className={`text-xs ${isAgentRunning ? "animate-pulse" : ""}`}
+        >
+          {isAgentRunning ? "Running" : showLoading ? "Refreshing" : "Ready"}
+        </Badge>
+      </CardHeader>
+      <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {showLoading ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {isAgentRunning
+                  ? `${agentName} is analyzing data...`
+                  : "Agents are gathering the latest insights..."}
+              </p>
+            </div>
+          ) : items.length ? (
+            <ul className="space-y-2 h-full overflow-y-auto pr-2">
+              {items.slice(0, MAX_ITEMS).map((line, idx) => (
+                <li
+                  key={`${title}-${idx}`}
+                  className="text-sm text-foreground leading-relaxed flex gap-2"
+                >
+                  <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                  <span className="break-words">{line}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          )}
         </div>
-      </div>
-      <Badge variant={loading ? "secondary" : "outline"} className="text-xs">
-        {loading ? "Refreshing" : "Ready"}
-      </Badge>
-    </CardHeader>
-    <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {loading ? (
-          <p className="text-sm text-muted-foreground animate-pulse">
-            Agents are gathering the latest insights...
-          </p>
-        ) : items.length ? (
-          <ul className="space-y-2 h-full overflow-y-auto pr-2">
-            {items.slice(0, MAX_ITEMS).map((line, idx) => (
-              <li
-                key={`${title}-${idx}`}
-                className="text-sm text-foreground leading-relaxed flex gap-2"
-              >
-                <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="break-words">{line}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
-        )}
-      </div>
-      <Button
-        onClick={navigating}
-        variant="outline"
-        className="justify-start gap-2 text-sm flex-shrink-0"
-      >
-        View full dashboard
-      </Button>
-    </CardContent>
-  </Card>
-);
+        <Button
+          onClick={navigating}
+          variant="outline"
+          className="justify-start gap-2 text-sm flex-shrink-0"
+        >
+          View full dashboard
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -101,6 +137,10 @@ const Dashboard = () => {
   const coursePlanLines = useMemo(
     () => textToList(agentOutputs.coursePlan),
     [agentOutputs.coursePlan]
+  );
+  const projectLines = useMemo(
+    () => textToList(agentOutputs.projectRecommendations),
+    [agentOutputs.projectRecommendations]
   );
   const finalPlanHighlights = useMemo(
     () => textToList(agentOutputs.finalPlan).slice(0, MAX_ITEMS),
@@ -131,82 +171,10 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Debug Panel */}
-      <div className="container mx-auto px-6 py-4">
-        <Card className="border-2 border-orange-200 bg-orange-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
-              <Bug className="w-4 h-4" />
-              Debug Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div>
-                <div className="font-medium text-orange-700">
-                  WebSocket Status
-                </div>
-                <Badge
-                  variant={isConnected ? "default" : "destructive"}
-                  className="text-xs"
-                >
-                  {isConnected ? "Connected" : "Disconnected"}
-                </Badge>
-              </div>
-              <div>
-                <div className="font-medium text-orange-700">Plan Running</div>
-                <Badge
-                  variant={isRunning ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {isRunning ? "Yes" : "No"}
-                </Badge>
-              </div>
-              <div>
-                <div className="font-medium text-orange-700">
-                  Running Agents
-                </div>
-                <div className="text-orange-600">
-                  {runningAgents.length > 0 ? runningAgents.join(", ") : "None"}
-                </div>
-              </div>
-              <div>
-                <div className="font-medium text-orange-700">
-                  Progress Count
-                </div>
-                <div className="text-orange-600">{progress.length}</div>
-              </div>
-            </div>
-            {error && (
-              <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
-                <strong>Error:</strong> {error}
-              </div>
-            )}
-            {runningAgents.length > 0 && (
-              <div className="mt-2">
-                <div className="font-medium text-orange-700 text-xs mb-1">
-                  Agent Details:
-                </div>
-                <div className="space-y-1">
-                  {runningAgents.map((agent, idx) => (
-                    <div
-                      key={idx}
-                      className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded"
-                    >
-                      {agent}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
       <main className="container mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] max-h-[calc(100vh-12rem)]">
           <div className="flex flex-col gap-4 flex-1 min-w-0 lg:max-w-[66.666%]">
-            <div className="flex-1 min-h-[280px] max-h-[50%]">
+            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
               <InsightsCard
                 icon={Briefcase}
                 title="Job Market Dashboard"
@@ -215,10 +183,12 @@ const Dashboard = () => {
                 emptyMessage="Generate a plan to see current job market highlights."
                 navigating={() => navigate("/job-market")}
                 loading={sectionLoading.jobMarket}
+                agentName="JobMarketAgent"
+                runningAgents={runningAgents}
               />
             </div>
 
-            <div className="flex-1 min-h-[280px] max-h-[50%]">
+            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
               <InsightsCard
                 icon={BookOpen}
                 title="Course Dashboard"
@@ -227,6 +197,22 @@ const Dashboard = () => {
                 emptyMessage="Generate a plan to unlock your tailored course roadmap."
                 navigating={() => navigate("/academics")}
                 loading={sectionLoading.academics}
+                agentName="CourseCatalogAgent"
+                runningAgents={runningAgents}
+              />
+            </div>
+
+            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
+              <InsightsCard
+                icon={Code}
+                title="Projects Dashboard"
+                subtitle="Portfolio projects and skill-building recommendations"
+                items={projectLines}
+                emptyMessage="Generate a plan to see personalized project suggestions."
+                navigating={() => navigate("/projects")}
+                loading={sectionLoading.projects}
+                agentName="ProjectAdvisorAgent"
+                runningAgents={runningAgents}
               />
             </div>
           </div>

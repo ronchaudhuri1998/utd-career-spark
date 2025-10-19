@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { flushSync } from "react-dom";
 import {
   websocketService,
@@ -6,6 +6,7 @@ import {
   PlanComplete,
   WebSocketError,
 } from "@/lib/websocket";
+import { useUserData, AgentOutputs } from "@/contexts/UserDataContext";
 
 export interface UseWebSocketReturn {
   isConnected: boolean;
@@ -31,6 +32,56 @@ export const useWebSocket = (): UseWebSocketReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const progressRef = useRef<AgentProgress[]>([]);
+  const agentOutputsRef = useRef<AgentOutputs | null>(null);
+  const { setAgentOutputs, agentOutputs } = useUserData();
+
+  // Keep ref in sync with current agentOutputs
+  useEffect(() => {
+    agentOutputsRef.current = agentOutputs;
+  }, [agentOutputs]);
+
+  // Function to update dashboard data when specific agents complete
+  const updateDashboardOnAgentComplete = useCallback(
+    (agent: string, output: string) => {
+      console.log(`🎯 Agent ${agent} completed, updating dashboard data`);
+
+      const currentOutputs = agentOutputsRef.current || {
+        finalPlan: "",
+        jobMarket: "",
+        coursePlan: "",
+        projectRecommendations: "",
+        trace: [],
+        agentcore: {
+          available: false,
+          status: "AgentCore session not started yet.",
+          memory_id: undefined,
+          memory_name: undefined,
+        },
+      };
+      const updatedOutputs = { ...currentOutputs };
+
+      switch (agent) {
+        case "JobMarketAgent":
+          updatedOutputs.jobMarket = output;
+          break;
+        case "CourseCatalogAgent":
+          updatedOutputs.coursePlan = output;
+          break;
+        case "ProjectAdvisorAgent":
+          updatedOutputs.projectRecommendations = output;
+          break;
+        case "CareerPlannerAgent":
+          updatedOutputs.finalPlan = output;
+          break;
+        default:
+          console.log(`Unknown agent: ${agent}, skipping dashboard update`);
+          return;
+      }
+
+      setAgentOutputs(updatedOutputs);
+    },
+    [setAgentOutputs]
+  );
 
   useEffect(() => {
     // Connect to WebSocket
@@ -74,6 +125,11 @@ export const useWebSocket = (): UseWebSocketReturn => {
         agentProgress.completed
       ) {
         setRunningAgents((prev) => prev.filter((a) => a !== agent));
+
+        // Update dashboard data when agent completes
+        if (agentProgress.output) {
+          updateDashboardOnAgentComplete(agent, agentProgress.output);
+        }
       }
     };
 
@@ -100,7 +156,7 @@ export const useWebSocket = (): UseWebSocketReturn => {
       websocketService.offError(handleError);
       websocketService.disconnect();
     };
-  }, []);
+  }, [updateDashboardOnAgentComplete, setAgentOutputs]);
 
   const startPlan = (
     goal: string,
