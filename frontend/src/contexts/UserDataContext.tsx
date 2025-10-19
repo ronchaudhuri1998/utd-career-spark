@@ -1,6 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import { toast } from "sonner";
-import { generatePlan, AgentWorkflowResponse, PlanRequestExtras } from "@/lib/api";
+import {
+  generatePlan,
+  AgentWorkflowResponse,
+  PlanRequestExtras,
+} from "@/lib/api";
 
 export interface UserExperience {
   title: string;
@@ -89,6 +100,7 @@ interface UserDataContextType {
     loading: boolean
   ) => void;
   agentOutputs: AgentOutputs;
+  setAgentOutputs: (outputs: AgentOutputs) => void;
   sessionId: string;
   setSessionId: (id: string) => void;
   runAgentWorkflow: (
@@ -195,10 +207,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(
-          STORAGE_OUTPUTS_KEY,
-          JSON.stringify(agentOutputs)
-        );
+        localStorage.setItem(STORAGE_OUTPUTS_KEY, JSON.stringify(agentOutputs));
       } catch (error) {
         console.error("Error saving agent outputs:", error);
       }
@@ -225,10 +234,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     }));
   };
 
-  const resetAgentOutputs = () => {
+  const resetAgentOutputs = useCallback(() => {
     setAgentOutputs(defaultAgentOutputs);
     localStorage.removeItem(STORAGE_OUTPUTS_KEY);
-  };
+  }, []);
 
   const resetUserData = () => {
     setUserData(defaultUserData);
@@ -274,19 +283,17 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     try {
       const extras: PlanRequestExtras = {
         student_year:
-          details?.studentYear ?? userData.studentYear ?? userData.graduationYear ?? "",
-        courses_taken:
-          details?.coursesTaken ?? userData.coursesTaken ?? "",
+          details?.studentYear ??
+          userData.studentYear ??
+          userData.graduationYear ??
+          "",
+        courses_taken: details?.coursesTaken ?? userData.coursesTaken ?? "",
         about: details?.about ?? userData.bio ?? "",
         time_commitment:
           details?.timeCommitment ?? userData.timeCommitment ?? "",
         contact_email: details?.contactEmail ?? userData.email ?? "",
       };
-      const response = await generatePlan(
-        goal,
-        sessionId || undefined,
-        extras
-      );
+      const response = await generatePlan(goal, sessionId || undefined, extras);
       setAgentOutputs({
         finalPlan: response.final_plan ?? "",
         jobMarket: response.job_market ?? "",
@@ -327,6 +334,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         sectionLoading,
         setSectionLoading,
         agentOutputs,
+        setAgentOutputs,
         sessionId,
         setSessionId,
         runAgentWorkflow,
