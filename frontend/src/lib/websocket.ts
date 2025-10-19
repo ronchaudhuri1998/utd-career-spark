@@ -2,11 +2,12 @@ import { io, Socket } from "socket.io-client";
 
 export interface AgentProgress {
   agent: string;
+  call_id: string;
   event: string;
   output?: string;
   timestamp: string;
   completed?: boolean;
-  status?: "started" | "completed";
+  status?: "started" | "progress" | "completed";
 }
 
 export interface PlanComplete {

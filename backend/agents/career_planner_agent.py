@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 
 from agentcore_runtime import AgentCoreRuntime
@@ -20,9 +21,7 @@ class CareerPlannerAgent(BaseAgent):
     """Coordinate specialized agents to deliver an actionable career roadmap."""
 
     role_name = "Career Planner Orchestrator"
-    role_description = (
-        "Synthesize job market research, academic guidance, and project advice into a cohesive, staged career plan."
-    )
+    role_description = "Synthesize job market research, academic guidance, and project advice into a cohesive, staged career plan."
 
     def __init__(
         self,
@@ -52,6 +51,14 @@ class CareerPlannerAgent(BaseAgent):
         narration: List[Dict[str, str]] = []
         runtime = self.agentcore_runtime if session_id else None
 
+        # Generate unique call IDs for each agent execution
+        call_ids = {
+            "JobMarketAgent": str(uuid.uuid4()),
+            "CourseCatalogAgent": str(uuid.uuid4()),
+            "ProjectAdvisorAgent": str(uuid.uuid4()),
+            "CareerPlannerAgent": str(uuid.uuid4()),
+        }
+
         def record(
             agent: str,
             event: str,
@@ -69,13 +76,15 @@ class CareerPlannerAgent(BaseAgent):
                 payload = output or event
                 runtime.record_agent_output(session_id, agent, payload)
 
-            # NEW: Push to queue for WebSocket streaming
+            # NEW: Push to queue for WebSocket streaming with call_id
             if update_queue:
                 from datetime import datetime
 
+                call_id = call_ids.get(agent, str(uuid.uuid4()))
                 update_queue.put(
                     {
                         "agent": agent,
+                        "call_id": call_id,
                         "event": event,
                         "output": output,
                         "timestamp": datetime.now().isoformat(),
@@ -190,12 +199,19 @@ class CareerPlannerAgent(BaseAgent):
         context: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Assemble the orchestrator prompt summarizing all agent inputs."""
-        base_query = query.strip() or "Create an actionable career plan for this student."
+        base_query = (
+            query.strip() or "Create an actionable career plan for this student."
+        )
         context = context or {}
         job_summary = str(context.get("job_summary", "")).strip()
         course_plan = str(context.get("course_plan", "")).strip()
-        project_recommendations = str(context.get("project_recommendations", "")).strip()
-        timeline = str(context.get("timeline", "")).strip() or "Recommend a 6-12 month timeline."
+        project_recommendations = str(
+            context.get("project_recommendations", "")
+        ).strip()
+        timeline = (
+            str(context.get("timeline", "")).strip()
+            or "Recommend a 6-12 month timeline."
+        )
         student_background = str(context.get("student_background", "")).strip()
         courses_taken = str(context.get("courses_taken", "")).strip()
         time_commitment = str(context.get("time_commitment", "")).strip()
@@ -209,7 +225,9 @@ class CareerPlannerAgent(BaseAgent):
         if course_plan:
             sections.append(f"Course and campus resources:\n{course_plan}")
         if project_recommendations:
-            sections.append(f"Portfolio projects & skill-building plan:\n{project_recommendations}")
+            sections.append(
+                f"Portfolio projects & skill-building plan:\n{project_recommendations}"
+            )
         if student_background:
             sections.append(f"Student background or constraints:\n{student_background}")
         if courses_taken:
@@ -217,17 +235,19 @@ class CareerPlannerAgent(BaseAgent):
         if time_commitment:
             sections.append(f"Weekly time available: {time_commitment}")
 
-        sections.extend([
-            "Task: Combine these into a unified, staged career roadmap tailored to a UT Dallas student.",
-            f"Timeline guidance: {timeline}",
-            "Output format:",
-            "- Executive summary (2-3 sentences)",
-            "- Sequenced milestones (semester-by-semester or monthly)",
-            "- Skills to focus on and how to validate them",
-            "- Resources or support systems to leverage",
-            "- Risks, blockers, or questions to clarify with advisors",
-            "Structure the final plan with clearly labeled sections ready to share with mentors.",
-        ])
+        sections.extend(
+            [
+                "Task: Combine these into a unified, staged career roadmap tailored to a UT Dallas student.",
+                f"Timeline guidance: {timeline}",
+                "Output format:",
+                "- Executive summary (2-3 sentences)",
+                "- Sequenced milestones (semester-by-semester or monthly)",
+                "- Skills to focus on and how to validate them",
+                "- Resources or support systems to leverage",
+                "- Risks, blockers, or questions to clarify with advisors",
+                "Structure the final plan with clearly labeled sections ready to share with mentors.",
+            ]
+        )
         return "\n\n".join(sections)
 
     @staticmethod

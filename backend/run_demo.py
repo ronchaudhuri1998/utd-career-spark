@@ -44,6 +44,9 @@ app_logger = _configure_logging()
 # Instantiate planner once so the sub-agents (and their caches) persist across requests.
 planner = CareerPlannerAgent(agentcore_runtime=agentcore_runtime)
 
+# Track running workflows to prevent duplicates
+running_workflows = set()
+
 AGENT_META = {
     "JobMarketAgent": {
         "label": "Job Market Agent",
@@ -405,6 +408,7 @@ def create_app() -> Flask:
                             break
                     else:
                         # This is an agent progress update from record()
+                        app_logger.info(f"📡 Emitting agent_progress: {update}")
                         socketio.emit("agent_progress", update)
                 except queue.Empty:
                     continue

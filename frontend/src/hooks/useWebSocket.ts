@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   websocketService,
   AgentProgress,
@@ -33,37 +34,35 @@ export const useWebSocket = (): UseWebSocketReturn => {
 
   useEffect(() => {
     // Connect to WebSocket
-    console.log("🔌 WebSocket - Attempting connection...");
     websocketService
       .connect()
       .then(() => {
-        console.log("🟢 WebSocket - Connected successfully");
         setIsConnected(true);
       })
       .catch((err) => {
-        console.error("🔴 WebSocket - Connection failed:", err);
         setError("Failed to connect to server");
       });
 
     // Set up event listeners
     const handleAgentProgress = (agentProgress: AgentProgress) => {
-      console.log("🔵 WebSocket Event - Agent Progress:", {
+      console.log("📡 Received agent progress:", {
         agent: agentProgress.agent,
+        call_id: agentProgress.call_id,
         event: agentProgress.event,
         status: agentProgress.status,
         completed: agentProgress.completed,
-        hasOutput: !!agentProgress.output,
-        timestamp: agentProgress.timestamp,
       });
 
-      progressRef.current = [...progressRef.current, agentProgress];
-      setProgress([...progressRef.current]);
+      const newProgress = [...progressRef.current, agentProgress];
+      progressRef.current = newProgress;
+      flushSync(() => {
+        setProgress(newProgress);
+      });
 
       // Handle agent status changes
       const agent = agentProgress.agent;
 
       if (agentProgress.status === "started") {
-        console.log("🟢 Agent Started:", agent);
         setRunningAgents((prev) => {
           if (!prev.includes(agent)) {
             return [...prev, agent];
@@ -74,30 +73,17 @@ export const useWebSocket = (): UseWebSocketReturn => {
         agentProgress.status === "completed" ||
         agentProgress.completed
       ) {
-        console.log(
-          "🔴 Agent Completed:",
-          agent,
-          "- Event:",
-          agentProgress.event
-        );
         setRunningAgents((prev) => prev.filter((a) => a !== agent));
       }
     };
 
     const handlePlanComplete = (planResult: PlanComplete) => {
-      console.log("✅ WebSocket Event - Plan Complete:", {
-        goal: planResult.goal,
-        sessionId: planResult.session_id,
-        hasTrace: planResult.trace?.length || 0,
-        hasFinalPlan: !!planResult.final_plan,
-      });
       setResult(planResult);
       setIsRunning(false);
       setRunningAgents([]); // Clear all running agents when plan completes
     };
 
     const handleError = (wsError: WebSocketError) => {
-      console.log("❌ WebSocket Event - Error:", wsError.message);
       setError(wsError.message);
       setIsRunning(false);
       setRunningAgents([]); // Clear all running agents on error

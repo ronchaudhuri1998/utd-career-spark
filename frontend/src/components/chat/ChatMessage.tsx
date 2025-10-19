@@ -1,5 +1,11 @@
 import { Bot, User, Loader2, CircleCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Message {
   id: number;
@@ -7,8 +13,11 @@ interface Message {
   isUser: boolean;
   meta?: {
     agent: string;
+    call_id: string;
     event: string;
     output?: string;
+    status?: "started" | "progress" | "completed";
+    progressUpdates?: string[];
   };
 }
 
@@ -19,13 +28,20 @@ interface ChatMessageProps {
 
 const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
   const isProgressUpdate = message.meta?.agent && !message.isUser;
-  const isCompleted =
-    message.meta?.event?.includes("Completed") ||
-    message.meta?.event?.includes("Generated");
+  const isCompleted = message.meta?.status === "completed";
+  const isInProgress = message.meta?.status === "progress";
+  const isStarted = message.meta?.status === "started";
+
+  // Determine if we should show accordion content
+  const hasProgressUpdates =
+    message.meta?.progressUpdates && message.meta.progressUpdates.length > 0;
+  const hasOutput = message.meta?.output;
+  const shouldShowAccordion =
+    isProgressUpdate && (hasProgressUpdates || hasOutput);
 
   return (
     <div
-      className={`rounded-lg border p-3 text-sm transition-all duration-200 ${
+      className={`rounded-lg border p-3 text-sm transition-all duration-200 m-4 ${
         message.isUser
           ? "border-primary/40 bg-primary/10"
           : isProgressUpdate
@@ -52,7 +68,9 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
             {message.isUser ? "You" : message.meta?.agent || "Agent"}
           </span>
           {isProgressUpdate && !isCompleted && (
-            <span className="text-blue-600 text-xs">Working...</span>
+            <span className="text-blue-600 text-xs">
+              {isStarted ? "Starting..." : "Working..."}
+            </span>
           )}
         </div>
         {!message.isUser && (
@@ -68,11 +86,41 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
           </Badge>
         )}
       </div>
-      <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-        {message.meta?.output
-          ? `${message.text}\n\n${message.meta.output}`
-          : message.text}
-      </p>
+
+      {shouldShowAccordion ? (
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="details" className="border-none">
+            <AccordionTrigger className="py-2 px-0 hover:no-underline">
+              <p className="text-foreground whitespace-pre-wrap leading-relaxed text-left">
+                {message.text}
+              </p>
+            </AccordionTrigger>
+            <AccordionContent className="pt-2">
+              <div className="space-y-2">
+                {!isCompleted && hasProgressUpdates && (
+                  <div>
+                    <p className="font-medium text-sm mb-2">
+                      Progress Updates:
+                    </p>
+                    {message.meta.progressUpdates.map((update, index) => (
+                      <p key={index}>{update}</p>
+                    ))}
+                  </div>
+                )}
+                {isCompleted && hasOutput && (
+                  <div>
+                    <p className="whitespace-pre-wrap">{message.meta.output}</p>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : (
+        <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+          {message.text}
+        </p>
+      )}
     </div>
   );
 };
