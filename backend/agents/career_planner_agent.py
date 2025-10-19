@@ -44,6 +44,7 @@ class CareerPlannerAgent(BaseAgent):
         query: str,
         *,
         context: Optional[Dict[str, Any]] = None,
+        update_queue: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Run specialized agents and return their outputs plus a narration trace."""
         context = context or {}
@@ -62,6 +63,19 @@ class CareerPlannerAgent(BaseAgent):
             if runtime and (output or event):
                 payload = output or event
                 runtime.record_agent_output(session_id, agent, payload)
+
+            # NEW: Push to queue for WebSocket streaming
+            if update_queue:
+                from datetime import datetime
+
+                update_queue.put(
+                    {
+                        "agent": agent,
+                        "event": event,
+                        "output": output,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
 
         record("JobMarketAgent", "Analyzing hiring trends, growth roles, and critical skills.")
         job_context = context.get("job_market")

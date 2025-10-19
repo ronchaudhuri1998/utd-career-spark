@@ -23,14 +23,23 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "📦 Checking frontend dependencies..."
+echo "📦 Checking and installing dependencies..."
+
+# Check and install frontend dependencies
 if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
     echo "➡️  Installing frontend dependencies (npm install)..."
     (cd "$FRONTEND_DIR" && npm install)
+else
+    echo "➡️  Updating frontend dependencies (npm install)..."
+    (cd "$FRONTEND_DIR" && npm install)
 fi
 
+# Check and install backend dependencies
 if [[ ! -f "$BACKEND_DIR/requirements.txt" ]]; then
     echo "⚠️  Missing backend/requirements.txt. Please verify your backend folder."
+else
+    echo "➡️  Installing backend dependencies (pip install)..."
+    (cd "$BACKEND_DIR" && source .venv/bin/activate && pip install -r requirements.txt)
 fi
 
 PORT=5000
@@ -42,7 +51,7 @@ if PIDS=$(lsof -ti:"$PORT" 2>/dev/null); then
     fi
 fi
 
-echo "🚀 Starting Flask backend..."
+echo "🚀 Starting Flask-SocketIO backend..."
 (
     cd "$BACKEND_DIR"
     source .venv/bin/activate

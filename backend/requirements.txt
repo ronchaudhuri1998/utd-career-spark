@@ -2,3 +2,5 @@ strands-agents
 bedrock-agentcore
 flask
 flask-cors
+flask-socketio
+python-socketio

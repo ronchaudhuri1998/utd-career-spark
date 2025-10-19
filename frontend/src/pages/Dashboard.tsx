@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, BookOpen, MessageCircle, Sparkles, User } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
-import MainChatOverlay from "@/components/MainChatOverlay";
+import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 
 const textToList = (text: string) =>
   text
@@ -144,7 +144,9 @@ const Dashboard = () => {
                     <MessageCircle className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">Career Copilot Chat</CardTitle>
+                    <CardTitle className="text-lg">
+                      Career Copilot Chat
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Ask follow-up questions or explore next steps anytime.
                     </p>
@@ -155,7 +157,10 @@ const Dashboard = () => {
                 {finalPlanHighlights.length ? (
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     {finalPlanHighlights.map((line, idx) => (
-                      <li key={`plan-highlight-${idx}`} className="flex gap-2 leading-relaxed">
+                      <li
+                        key={`plan-highlight-${idx}`}
+                        className="flex gap-2 leading-relaxed"
+                      >
                         <span className="mt-1 block h-1.5 w-1.5 rounded-full bg-primary" />
                         <span>{line}</span>
                       </li>
@@ -163,18 +168,20 @@ const Dashboard = () => {
                   </ul>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Once your roadmap is generated, highlights will appear here. Use the chat bubble to ask anything.
+                    Once your roadmap is generated, highlights will appear here.
+                    Use the chat bubble to ask anything.
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  The floating chat bubble stays active, so you can refine your plan or request interview prep whenever you like.
+                  The floating chat bubble stays active, so you can refine your
+                  plan or request interview prep whenever you like.
                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-      <MainChatOverlay />
+      <MainChatOverlayStreaming />
     </div>
   );
 };

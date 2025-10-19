@@ -6,11 +6,14 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import queue
+import threading
 
 from typing import Dict, Optional, Tuple
 
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 
 from agentcore_runtime import runtime as agentcore_runtime
 from agents.career_planner_agent import CareerPlannerAgent
@@ -71,6 +74,9 @@ def create_app() -> Flask:
     app.secret_key = os.getenv("FLASK_SECRET_KEY", "career-guidance-demo")
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*")
+
     def _ensure_session_id(existing: str = "") -> str:
         """Persist and return the AgentCore session id associated with this client."""
         sid = existing or session.get("agentcore_session_id", "")
@@ -126,6 +132,7 @@ def create_app() -> Flask:
         session_id: str,
         *,
         extra_context: Optional[Dict[str, str]] = None,
+        update_queue: Optional[queue.Queue] = None,
     ) -> Dict[str, object]:
         agentcore_runtime.record_user_goal(session_id, goal)
         context: Dict[str, str] = {"session_id": session_id}
@@ -134,6 +141,7 @@ def create_app() -> Flask:
         return planner.run_with_trace(
             goal,
             context=context,
+            update_queue=update_queue,
         )
 
     def _generate_intro_message(goal: str) -> str:
@@ -356,19 +364,76 @@ def create_app() -> Flask:
         """Expose AgentCore status for onboarding UI."""
         return jsonify(_agentcore_payload())
 
-    return app
+    # WebSocket event handlers
+    @socketio.on("start_plan")
+    def handle_start_plan(data):
+        """Handle WebSocket request to start agent workflow."""
+        goal = data.get("goal", "").strip()
+        session_id = data.get("session_id", "").strip()
+        extra_context = data.get("extra_context", {})
+
+        if not goal:
+            emit("error", {"message": "Goal is required"})
+            return
+
+        # Create a queue for the thread to push updates to
+        update_queue = queue.Queue()
+
+        def run_workflow_thread():
+            try:
+                result = _run_workflow(
+                    goal,
+                    session_id,
+                    extra_context=extra_context,
+                    update_queue=update_queue,
+                )
+                update_queue.put({"type": "complete", "result": result})
+            except Exception as exc:
+                update_queue.put({"type": "error", "message": str(exc)})
+
+        def monitor_queue():
+            """Monitor the queue and emit WebSocket updates."""
+            while True:
+                try:
+                    update = update_queue.get(timeout=0.1)
+                    if "type" in update:
+                        if update["type"] == "complete":
+                            socketio.emit("plan_complete", update["result"])
+                            break
+                        elif update["type"] == "error":
+                            socketio.emit("error", {"message": update["message"]})
+                            break
+                    else:
+                        # This is an agent progress update from record()
+                        socketio.emit("agent_progress", update)
+                except queue.Empty:
+                    continue
+
+        # Start the workflow in a separate thread
+        workflow_thread = threading.Thread(target=run_workflow_thread)
+        workflow_thread.start()
+
+        # Start monitoring in another thread
+        monitor_thread = threading.Thread(target=monitor_queue)
+        monitor_thread.start()
+
+    return app, socketio
 
 
 def main() -> None:
     """Start the local development server for the web demo."""
-    app = create_app()
+    app, socketio = create_app()
     app_logger.info("===============================================")
     app_logger.info("UTD Career Guidance AI – Web Demo")
     app_logger.info("Open your browser to http://127.0.0.1:5000/")
     app_logger.info("Press CTRL+C to stop the server.")
     app_logger.info("===============================================")
-    app_logger.info("Starting Flask development server on http://127.0.0.1:5000/")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app_logger.info(
+        "Starting Flask-SocketIO development server on http://127.0.0.1:5000/"
+    )
+    socketio.run(
+        app, host="127.0.0.1", port=5000, debug=False, allow_unsafe_werkzeug=True
+    )
 
 
 if __name__ == "__main__":
