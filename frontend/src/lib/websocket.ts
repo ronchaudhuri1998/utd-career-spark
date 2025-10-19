@@ -5,6 +5,8 @@ export interface AgentProgress {
   event: string;
   output?: string;
   timestamp: string;
+  completed?: boolean;
+  status?: "started" | "completed";
 }
 
 export interface PlanComplete {

@@ -45,23 +45,6 @@ export const useChatMessages = ({
     }
   }, [progress]);
 
-  // Handle plan completion
-  useEffect(() => {
-    if (result) {
-      const agentEntries = result.trace.map((entry, idx) => ({
-        id: Date.now() + idx + 1,
-        text: entry.event,
-        isUser: false,
-        meta: {
-          agent: entry.agent,
-          event: entry.event,
-          output: entry.output,
-        },
-      }));
-      setChatHistory((prev) => [...prev, ...agentEntries]);
-    }
-  }, [result]);
-
   // Handle errors
   useEffect(() => {
     if (error) {

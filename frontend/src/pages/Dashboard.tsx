@@ -3,8 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, BookOpen, MessageCircle, Sparkles, User } from "lucide-react";
+import {
+  Briefcase,
+  BookOpen,
+  MessageCircle,
+  Sparkles,
+  User,
+  Bug,
+} from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 
 const textToList = (text: string) =>
@@ -83,6 +91,8 @@ const InsightsCard = ({
 const Dashboard = () => {
   const navigate = useNavigate();
   const { userData, agentOutputs, sectionLoading } = useUserData();
+  const { isConnected, isRunning, runningAgents, progress, result, error } =
+    useWebSocket();
 
   const jobMarketLines = useMemo(
     () => textToList(agentOutputs.jobMarket),
@@ -120,6 +130,78 @@ const Dashboard = () => {
           </Button>
         </div>
       </header>
+
+      {/* Debug Panel */}
+      <div className="container mx-auto px-6 py-4">
+        <Card className="border-2 border-orange-200 bg-orange-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
+              <Bug className="w-4 h-4" />
+              Debug Info
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div>
+                <div className="font-medium text-orange-700">
+                  WebSocket Status
+                </div>
+                <Badge
+                  variant={isConnected ? "default" : "destructive"}
+                  className="text-xs"
+                >
+                  {isConnected ? "Connected" : "Disconnected"}
+                </Badge>
+              </div>
+              <div>
+                <div className="font-medium text-orange-700">Plan Running</div>
+                <Badge
+                  variant={isRunning ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {isRunning ? "Yes" : "No"}
+                </Badge>
+              </div>
+              <div>
+                <div className="font-medium text-orange-700">
+                  Running Agents
+                </div>
+                <div className="text-orange-600">
+                  {runningAgents.length > 0 ? runningAgents.join(", ") : "None"}
+                </div>
+              </div>
+              <div>
+                <div className="font-medium text-orange-700">
+                  Progress Count
+                </div>
+                <div className="text-orange-600">{progress.length}</div>
+              </div>
+            </div>
+            {error && (
+              <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
+                <strong>Error:</strong> {error}
+              </div>
+            )}
+            {runningAgents.length > 0 && (
+              <div className="mt-2">
+                <div className="font-medium text-orange-700 text-xs mb-1">
+                  Agent Details:
+                </div>
+                <div className="space-y-1">
+                  {runningAgents.map((agent, idx) => (
+                    <div
+                      key={idx}
+                      className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded"
+                    >
+                      {agent}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <main className="container mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] max-h-[calc(100vh-12rem)]">

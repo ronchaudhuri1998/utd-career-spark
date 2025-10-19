@@ -52,7 +52,12 @@ class CareerPlannerAgent(BaseAgent):
         narration: List[Dict[str, str]] = []
         runtime = self.agentcore_runtime if session_id else None
 
-        def record(agent: str, event: str, output: Optional[str] = None) -> None:
+        def record(
+            agent: str,
+            event: str,
+            output: Optional[str] = None,
+            status: str = "progress",
+        ) -> None:
             """Append narration step and stream it to the logger."""
             logger.info("[%s] %s", agent, event)
             entry: Dict[str, str] = {"agent": agent, "event": event}
@@ -74,14 +79,25 @@ class CareerPlannerAgent(BaseAgent):
                         "event": event,
                         "output": output,
                         "timestamp": datetime.now().isoformat(),
+                        "completed": status == "completed",
+                        "status": status,
                     }
                 )
 
-        record("JobMarketAgent", "Analyzing hiring trends, growth roles, and critical skills.")
+        record(
+            "JobMarketAgent",
+            "Analyzing hiring trends, growth roles, and critical skills.",
+            status="started",
+        )
         job_context = context.get("job_market")
         job_inputs = job_context if isinstance(job_context, dict) else {}
         job_insights = self.job_agent.run(query, context=job_inputs)
-        record("JobMarketAgent", "Completed labor market review.", job_insights)
+        record(
+            "JobMarketAgent",
+            "Completed labor market review.",
+            job_insights,
+            status="completed",
+        )
         scrape_snapshot = getattr(self.job_agent, "last_scrape", {}) or {}
         if scrape_snapshot:
             record(
@@ -93,6 +109,7 @@ class CareerPlannerAgent(BaseAgent):
         record(
             "CourseCatalogAgent",
             "Mapping market-aligned skills to UT Dallas coursework.",
+            status="started",
         )
         course_context: Dict[str, Any] = {
             "job_insights": job_insights,
@@ -105,11 +122,13 @@ class CareerPlannerAgent(BaseAgent):
             "CourseCatalogAgent",
             "Built course and campus resource roadmap.",
             course_plan,
+            status="completed",
         )
 
         record(
             "ProjectAdvisorAgent",
             "Designing portfolio project strategy and tech stack.",
+            status="started",
         )
         project_context: Dict[str, Any] = {
             "job_insights": job_insights,
@@ -123,11 +142,13 @@ class CareerPlannerAgent(BaseAgent):
             "ProjectAdvisorAgent",
             "Outlined project playbook and practice plan.",
             project_recommendations,
+            status="completed",
         )
 
         record(
             "CareerPlannerAgent",
             "Synthesizing expert inputs into a unified roadmap.",
+            status="started",
         )
         orchestration_context: Dict[str, Any] = {
             "job_summary": job_insights,
@@ -143,6 +164,7 @@ class CareerPlannerAgent(BaseAgent):
             "CareerPlannerAgent",
             "Generated final multi-semester career plan.",
             final_plan,
+            status="completed",
         )
 
         return {
