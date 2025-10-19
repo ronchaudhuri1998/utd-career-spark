@@ -126,8 +126,29 @@ class JobMarketAgent(BaseAgent):
             sections.append(f"Scrape metadata:\n{scrape_notes}")
 
         sections.append(
-            "Format the answer with headings for Roles, Skills, Employers, and Signals. "
-            "Call out any assumptions or missing data at the end."
+            "Format your response using this exact structure:\n\n"
+            "Here is an analysis of the current job market relevant to ... interested in ... in ...:\n\n"
+            "Roles\n"
+            "- ...: ... with ...\n"
+            "- ...: ... with ...\n"
+            "- ...: ... with ...\n\n"
+            "Skills\n"
+            "- ... remain must-have core technical skills across these roles\n"
+            "- ... are trending upward as companies adopt ...\n"
+            "- ... abilities are cited in ...% of job descriptions, highlighting the importance of ...\n\n"
+            "Employers\n"
+            "- ... like ...\n"
+            "- ... including ...\n"
+            "- ... ...\n\n"
+            "Signals\n"
+            "- ... can differentiate candidates\n"
+            "- ... demonstrate applied skills\n"
+            "- ... are highly valued\n\n"
+            "Assumptions and Missing Data:\n"
+            "- ...\n"
+            "- ...\n"
+            "- ...\n\n"
+            "Include 2-3 roles, 3-5 skills, 3-5 employers, 3-5 signals, and address assumptions/limitations."
         )
         return "\n\n".join(sections)
 

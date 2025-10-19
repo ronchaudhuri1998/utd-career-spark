@@ -41,14 +41,33 @@ class CourseCatalogAgent(BaseAgent):
             sections.append(f"Market signals to align with:\n{job_insights}")
 
         sections.append(
-            "Output format:\n"
-            "- Core courses (include catalog numbers and why they matter)\n"
-            "- Electives, certificates, or fast-track programs\n"
-            "- Campus resources and student organizations to leverage\n"
-            "- Suggested sequencing by semester (or short-term plan)\n"
-            "- Skills developed or prerequisites needed"
-        )
-        sections.append(
-            "Flag gaps where additional advising or approval may be required (e.g., prerequisites, limited seats)."
+            "Format your response using this exact structure:\n\n"
+            "Here is a course and resource roadmap for ... interested in ... in ...:\n\n"
+            "Core Courses:\n"
+            "- ... - ... (...)\n"
+            "- ... - ... (...)\n"
+            "- ... - ... (...)\n"
+            "- ... - ... (...)\n"
+            "- ... - ... (...)\n\n"
+            "Electives and Certificates:\n"
+            "- ... (...)\n"
+            "- ... (...)\n"
+            "- ... (...)\n"
+            "- ... (...)\n"
+            "- ... (...)\n\n"
+            "Campus Resources:\n"
+            "- ... - ...\n"
+            "- ... - ...\n"
+            "- ... - ...\n\n"
+            "Suggested Sequence:\n"
+            "- ...: ...\n"
+            "- ...: ...\n"
+            "- ...: ...\n\n"
+            "Prerequisites and Gaps:\n"
+            "- ...\n"
+            "- ...\n"
+            "- ...\n\n"
+            "This roadmap aligns with the key job market signals around ... The combination of ... developed will position you well for opportunities at ... in ... and beyond.\n\n"
+            "Include 4-6 core courses, 3-5 electives/certifications, 3-5 campus resources, 3-4 sequence phases, and address prerequisites/gaps."
         )
         return "\n\n".join(sections)
