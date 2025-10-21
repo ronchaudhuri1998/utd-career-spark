@@ -87,7 +87,7 @@ export interface StreamEvent {
   type: "session" | "chunk" | "trace" | "done" | "error";
   session_id?: string;
   text?: string;
-  data?: any;
+  data?: unknown;
   message?: string;
 }
 
@@ -128,7 +128,7 @@ export async function generatePlan(
 
   let resultSessionId = sessionId || "";
   let fullText = "";
-  const traces: any[] = [];
+  const traces: unknown[] = [];
   let buffer = "";
 
   try {

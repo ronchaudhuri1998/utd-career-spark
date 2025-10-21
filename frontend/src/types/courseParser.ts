@@ -306,7 +306,7 @@ function parseResources(text: string): AcademicResource[] {
     if (index >= resourceBlocks.length) return;
 
     const type = typeMatch
-      .replace(/[\[\]]/g, "")
+      .replace(/[[\]]/g, "")
       .toLowerCase() as AcademicResource["type"];
     const content = resourceBlocks[index].trim();
 
