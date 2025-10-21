@@ -3,27 +3,38 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, ArrowLeft, TrendingUp, Building, Sparkles, Briefcase } from "lucide-react";
+import { ArrowLeft, AlertCircle, Briefcase, TestTube2 } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
-
-const textBlocks = (text: string) =>
-  text
-    .split(/\n\n+/)
-    .map((block) => block.trim())
-    .filter(Boolean);
+import { validateJobMarketData } from "@/types/jobMarket";
+import { JobListings } from "@/components/job-market/JobListings";
+import { InsightCards } from "@/components/job-market/InsightCards";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { mockJobMarketData } from "@/data/mockJobMarketData";
+import { toast } from "sonner";
 
 const JobMarket = () => {
   const navigate = useNavigate();
-  const { userData, agentOutputs, sectionLoading } = useUserData();
+  const { userData, agentOutputs, sectionLoading, setAgentOutputs } =
+    useUserData();
 
-  const blocks = useMemo(() => textBlocks(agentOutputs.jobMarket), [
-    agentOutputs.jobMarket,
-  ]);
+  // Validate and parse job market data
+  const parsedData = useMemo(() => {
+    if (!agentOutputs.jobMarket) return null;
+    return validateJobMarketData(agentOutputs.jobMarket);
+  }, [agentOutputs.jobMarket]);
+
+  const loadMockData = () => {
+    setAgentOutputs({
+      ...agentOutputs,
+      jobMarket: mockJobMarketData,
+    });
+    toast.success("Mock job market data loaded successfully!");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-5 flex items-center gap-4">
+        <div className="w-full px-6 py-5 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -38,96 +49,96 @@ const JobMarket = () => {
               Job Market Overview
             </h1>
             <p className="text-sm text-muted-foreground">
-              Personalized market signals for {userData.careerGoal || "your goal"}
+              Personalized market signals for{" "}
+              {userData.careerGoal || "your goal"}
             </p>
           </div>
+          <Badge
+            variant={sectionLoading.jobMarket ? "secondary" : "outline"}
+            className="ml-auto"
+          >
+            {sectionLoading.jobMarket ? "Refreshing" : "Updated"}
+          </Badge>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 space-y-6">
-        <Card className="border-2 shadow-card">
-          <CardHeader className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Highlights</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                What the Job Market Agent found across postings, skills, and employers.
-              </p>
-            </div>
-            <Badge variant={sectionLoading.jobMarket ? "secondary" : "outline"}>
-              {sectionLoading.jobMarket ? "Refreshing" : "Last generated"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {blocks.length ? (
-              blocks.map((block, idx) => (
-                <div
-                  key={`job-block-${idx}`}
-                  className="border border-primary/20 bg-primary/5 rounded-xl p-4 space-y-2"
+      <main className="w-full px-6 py-8">
+        {!agentOutputs.jobMarket ? (
+          <Card className="border-2">
+            <CardContent className="py-12 text-center space-y-4">
+              <Briefcase className="w-12 h-12 mx-auto text-muted-foreground/50" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">
+                  No Job Market Data
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Run the onboarding flow to fetch live job market insights
+                  tailored to your goal.
+                </p>
+                <Button
+                  onClick={loadMockData}
+                  variant="outline"
+                  className="gap-2"
                 >
-                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {block}
+                  <TestTube2 className="w-4 h-4" />
+                  Load Mock Data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : parsedData ? (
+          <div className="grid lg:grid-cols-2 gap-6 w-full">
+            {/* Left: Job Listings */}
+            <div>
+              <JobListings listings={parsedData.listings} />
+            </div>
+
+            {/* Right: Key Insights */}
+            <div>
+              <InsightCards insights={parsedData.insights} />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Unable to Parse Data</AlertTitle>
+              <AlertDescription>
+                <div className="flex items-center justify-between gap-4">
+                  <span>
+                    The job market data could not be parsed into the interactive
+                    dashboard format.
+                  </span>
+                  <Button
+                    onClick={loadMockData}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0"
+                  >
+                    <TestTube2 className="w-3 h-3" />
+                    Load Mock Data
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-lg">Job Market Insights</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Unable to parse data into interactive dashboard format.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-primary/20 bg-primary/5 rounded-xl p-4">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed font-mono">
+                    {agentOutputs.jobMarket}
                   </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Run the onboarding flow to fetch live job market insights tailored to your goal.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-dashed border-primary/40 bg-white">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              Agent Snapshot
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>
-              Agent sequence: Job Market Agent → Course Catalog Agent → Project Advisor → Planner.
-            </p>
-            <p>
-              Session location: {userData.location || "not specified"}. Desired role: {userData.careerGoal || "unknown"}.
-            </p>
-            <p className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Update your goal from the chat bubble or onboarding to regenerate these insights.
-            </p>
-          </CardContent>
-        </Card>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {agentOutputs.trace?.map((entry, idx) => (
-            entry.agent === "JobMarketAgent" ? (
-              <Card
-                key={`trace-job-${idx}`}
-                className="border border-secondary bg-secondary/40"
-              >
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    {entry.event}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {entry.output || "No details captured."}
-                  </p>
-                </CardContent>
-              </Card>
-            ) : null
-          ))}
-          {blocks.length === 0 && (
-            <Card className="border bg-muted/40">
-              <CardContent className="py-10 text-center text-muted-foreground space-y-2">
-                <Building className="w-8 h-8 mx-auto text-muted-foreground/70" />
-                <p>No agent trace available yet. Generate a plan to unlock detailed logs.</p>
               </CardContent>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );
