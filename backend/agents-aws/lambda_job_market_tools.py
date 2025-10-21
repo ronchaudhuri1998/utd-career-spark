@@ -25,7 +25,7 @@ def scrape_hackernews_jobs() -> Tuple[List[str], str]:
 
         # Get the first "Who is Hiring?" post
         hiring_link = None
-        for link in soup.find_all("a", class_="storylink"):
+        for link in soup.find_all("a"):
             if "Who is hiring?" in link.text:
                 hiring_link = link.get("href")
                 break
@@ -71,7 +71,7 @@ def scrape_itjobswatch_skills() -> Tuple[List[str], str]:
 
         skills = []
         # Find the skills table
-        table = soup.find("table", class_="table")
+        table = soup.find("table", class_="results")
         if table:
             rows = table.find_all("tr")[1:]  # Skip header
             for row in rows[:20]:  # Limit to top 20
