@@ -16,8 +16,11 @@ import {
 export interface UserExperience {
   title: string;
   company: string;
-  duration: string;
+  startDate?: string;
+  endDate?: string;
   description: string;
+  technologies?: string;
+  location?: string;
 }
 
 export interface UserData {

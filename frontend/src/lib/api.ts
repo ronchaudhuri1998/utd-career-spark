@@ -48,9 +48,20 @@ export interface StatusResponse {
   memory_name?: string | null;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "http://127.0.0.1:5000";
+export interface ProcessCareerGoalResponse {
+  original_goal: string;
+  processed_goal: string;
+  agentcore?: AgentWorkflowResponse["agentcore"];
+}
 
-export async function requestIntro(goal: string, sessionId?: string): Promise<IntroResponse> {
+const API_BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
+  "http://127.0.0.1:5000";
+
+export async function requestIntro(
+  goal: string,
+  sessionId?: string
+): Promise<IntroResponse> {
   const payload: Record<string, unknown> = { goal };
   if (sessionId) {
     payload.session_id = sessionId;
@@ -65,7 +76,8 @@ export async function requestIntro(goal: string, sessionId?: string): Promise<In
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = typeof data?.error === "string" ? data.error : response.statusText;
+    const message =
+      typeof data?.error === "string" ? data.error : response.statusText;
     throw new Error(message || "Failed to generate plan");
   }
   return data as IntroResponse;
@@ -97,14 +109,17 @@ export async function generatePlan(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = typeof data?.error === "string" ? data.error : response.statusText;
+    const message =
+      typeof data?.error === "string" ? data.error : response.statusText;
     throw new Error(message || "Failed to generate plan");
   }
 
   return data as AgentWorkflowResponse;
 }
 
-export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+export async function sendChatMessage(
+  request: ChatRequest
+): Promise<ChatResponse> {
   const payload: Record<string, unknown> = {
     message: request.message,
     goal: request.goal,
@@ -125,7 +140,8 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = typeof data?.error === "string" ? data.error : response.statusText;
+    const message =
+      typeof data?.error === "string" ? data.error : response.statusText;
     throw new Error(message || "Chat request failed");
   }
 
@@ -138,4 +154,24 @@ export async function getAgentCoreStatus(): Promise<StatusResponse> {
     throw new Error(`Status check failed: ${response.statusText}`);
   }
   return (await response.json()) as StatusResponse;
+}
+
+export async function processCareerGoal(
+  goal: string
+): Promise<ProcessCareerGoalResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/process-career-goal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ goal }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      typeof data?.error === "string" ? data.error : response.statusText;
+    throw new Error(message || "Failed to process career goal");
+  }
+
+  return data as ProcessCareerGoalResponse;
 }

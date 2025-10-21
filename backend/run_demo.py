@@ -169,6 +169,28 @@ def create_app() -> Flask:
             app_logger.warning("Intro generation failed, returning error message: %s", exc)
             raise
 
+    def _process_career_goal(natural_language_goal: str) -> str:
+        """Process natural language career goal into a structured, actionable format."""
+        prompt = (
+            f"Transform this natural language career goal into a clear, professional career goal statement:\n\n"
+            f"Original: {natural_language_goal}\n\n"
+            f"Create a single, well-written paragraph (3-4 sentences) that describes their career aspirations. "
+            f"Write it as a flowing narrative, not a bulleted list. "
+            f"Start with their desired role, mention key skills/technologies, and end with their long-term vision. "
+            f"Make it sound natural and professional, like something they would write in a bio or resume summary."
+        )
+        try:
+            return claude_chat(
+                prompt,
+                system_prompt="You are a career guidance expert who helps students write clear, professional career goal statements. Write as a single flowing paragraph, not a list.",
+                max_tokens=200,
+                temperature=0.3,
+            ).strip()
+        except Exception as exc:
+            app_logger.warning("Career goal processing failed: %s", exc)
+            # Fallback: return the original goal if processing fails
+            return natural_language_goal
+
     @app.route("/", methods=["GET", "POST"])
     def index():
         goal = ""
@@ -366,6 +388,45 @@ def create_app() -> Flask:
     def api_status():
         """Expose AgentCore status for onboarding UI."""
         return jsonify(_agentcore_payload())
+
+    @app.post("/api/process-career-goal")
+    def api_process_career_goal():
+        """Process natural language career goal into structured format."""
+        payload = request.get_json(silent=True) or {}
+        natural_language_goal = str(payload.get("goal", "")).strip()
+
+        if not natural_language_goal:
+            return (
+                jsonify(
+                    {
+                        "error": "Career goal is required.",
+                        "agentcore": _agentcore_payload(),
+                    }
+                ),
+                400,
+            )
+
+        try:
+            # Process the natural language goal using Claude
+            processed_goal = _process_career_goal(natural_language_goal)
+            return jsonify(
+                {
+                    "original_goal": natural_language_goal,
+                    "processed_goal": processed_goal,
+                    "agentcore": _agentcore_payload(),
+                }
+            )
+        except Exception as exc:
+            app_logger.exception("Career goal processing failed.")
+            return (
+                jsonify(
+                    {
+                        "error": f"Failed to process career goal: {exc}",
+                        "agentcore": _agentcore_payload(),
+                    }
+                ),
+                500,
+            )
 
     # WebSocket event handlers
     @socketio.on("start_plan")

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,15 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import {
   Briefcase,
   BookOpen,
-  MessageCircle,
   Sparkles,
   User,
-  Bug,
   Code,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const textToList = (text: string) =>
   text
@@ -126,9 +127,16 @@ const InsightsCard = ({
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { userData, agentOutputs, sectionLoading } = useUserData();
+  const {
+    userData,
+    agentOutputs,
+    sectionLoading,
+    resetUserData,
+    setSessionId,
+  } = useUserData();
   const { isConnected, isRunning, runningAgents, progress, result, error } =
     useWebSocket();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const jobMarketLines = useMemo(
     () => textToList(agentOutputs.jobMarket),
@@ -147,6 +155,28 @@ const Dashboard = () => {
     [agentOutputs.finalPlan]
   );
 
+  const handleClearLocalStorage = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to clear all data? This will reset your profile and career plan."
+      )
+    ) {
+      // Use the proper context method to reset user data
+      resetUserData();
+      setSessionId(""); // Clear session ID
+      toast.success("All data cleared successfully");
+
+      // TODO: Clear AgentCore session memory when implemented
+      // Example: runtime.clear_session(session_id)
+
+      setShowOnboarding(true);
+    }
+  };
+
+  const handleOnboardingClose = () => {
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-0 z-10">
@@ -156,23 +186,32 @@ const Dashboard = () => {
               <Sparkles className="w-6 h-6 text-primary" />
               Your AI Career Copilot
             </h1>
-            <p className="text-muted-foreground">
-              Personalized roadmap for {userData.name || "you"} targeting{" "}
-              {userData.careerGoal || "your dream role"}.
-            </p>
           </div>
-          <Button
-            onClick={() => navigate("/profile")}
-            className="rounded-full w-fit px-5 bg-primary hover:bg-primary/90"
-          >
-            <User className="w-4 h-4 mr-2" />
-            Profile & Preferences
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={() => navigate("/profile")}
+              className="rounded-full w-fit px-5 bg-primary hover:bg-primary/90"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile & Preferences
+            </Button>
+            <Button
+              onClick={handleClearLocalStorage}
+              variant="destructive"
+              className="rounded-full w-fit px-5"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear Data
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] max-h-[calc(100vh-12rem)]">
+          <div className="flex-1 min-h-[400px] lg:min-h-[600px] lg:max-w-[33.333%] lg:min-w-[300px]">
+            <MainChatOverlayStreaming />
+          </div>
           <div className="flex flex-col gap-4 flex-1 min-w-0 lg:max-w-[66.666%]">
             <div className="flex-1 min-h-[280px] max-h-[33.333%]">
               <InsightsCard
@@ -216,12 +255,21 @@ const Dashboard = () => {
               />
             </div>
           </div>
-
-          <div className="flex-1 min-h-[400px] lg:min-h-[600px] lg:max-w-[33.333%] lg:min-w-[300px]">
-            <MainChatOverlayStreaming />
-          </div>
         </div>
       </main>
+
+      {/* TODO: Add AgentCore chat integration overlay
+          - Display live agent status
+          - Show conversation history from AgentCore memory
+          - Enable real-time plan generation
+          Example:
+          <AgentCoreChat 
+            sessionId={sessionId}
+            onPlanGenerate={handlePlanGenerate}
+          />
+      */}
+
+      <OnboardingModal open={showOnboarding} onClose={handleOnboardingClose} />
     </div>
   );
 };
