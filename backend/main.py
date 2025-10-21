@@ -248,7 +248,7 @@ async def api_plan_stream(request: PlanRequest):
 
             # Stream events from AgentCore
             event_count = 0
-            for event in orchestrator.invoke_supervisor_stream(
+            async for event in orchestrator.invoke_supervisor_stream(
                 goal=request.goal, session_id=session_id, extra_context=extra_context
             ):
                 event_count += 1
@@ -297,7 +297,11 @@ async def api_plan_stream(request: PlanRequest):
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable proxy buffering
+        },
     )
 
 

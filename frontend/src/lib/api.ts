@@ -155,7 +155,8 @@ export async function generatePlan(
 
       chunkCount++;
       const decodedChunk = decoder.decode(value, { stream: true });
-      console.log("🌐 SSE Chunk #" + chunkCount + ":", {
+      const timestamp = new Date().toISOString();
+      console.log("🌐 SSE Chunk #" + chunkCount + " at " + timestamp + ":", {
         length: decodedChunk.length,
         preview:
           decodedChunk.substring(0, 100) +
@@ -180,7 +181,11 @@ export async function generatePlan(
             console.log("🌐 Parsing event data:", eventData);
 
             const event: StreamEvent = JSON.parse(eventData);
-            console.log("🌐 Parsed SSE event:", event);
+            const eventTimestamp = new Date().toISOString();
+            console.log(
+              "🌐 Parsed SSE event at " + eventTimestamp + ":",
+              event
+            );
 
             if (event.type === "session" && event.session_id) {
               resultSessionId = event.session_id;

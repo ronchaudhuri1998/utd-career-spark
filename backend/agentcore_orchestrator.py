@@ -1,9 +1,9 @@
 """AWS Bedrock AgentCore orchestrator for career planning workflow."""
 
-import boto3
+import aioboto3
 import os
 import logging
-from typing import Dict, Iterator, Optional
+from typing import Dict, AsyncIterator, Optional
 from dotenv import load_dotenv
 
 # Configure logging for orchestrator
@@ -13,15 +13,13 @@ load_dotenv()
 
 
 class AgentCoreOrchestrator:
-    """Wrapper around AWS Bedrock AgentCore runtime for career planning."""
+    """Async wrapper around AWS Bedrock AgentCore runtime for career planning."""
 
     def __init__(self):
-        self.runtime_client = boto3.client(
-            "bedrock-agent-runtime",
-            region_name=os.getenv("AWS_REGION", "us-east-1"),
-        )
+        self.region = os.getenv("AWS_REGION", "us-east-1")
         self.planner_id = os.getenv("AGENTCORE_PLANNER_AGENT_ID")
         self.planner_alias_id = os.getenv("AGENTCORE_PLANNER_ALIAS_ID")
+        self.session = aioboto3.Session()
 
     def _build_input_text(
         self, goal: str, extra_context: Optional[Dict[str, str]]
@@ -90,63 +88,49 @@ class AgentCoreOrchestrator:
 
         return result
 
-    def invoke_supervisor_stream(
+    async def invoke_supervisor_stream(
         self,
         goal: str,
         session_id: str,
         extra_context: Optional[Dict[str, str]] = None,
-    ) -> Iterator[Dict]:
-        """Stream supervisor agent response as events arrive (TRUE streaming)."""
+    ) -> AsyncIterator[Dict]:
+        """Stream supervisor agent response as async generator."""
         input_text = self._build_input_text(goal, extra_context)
-        logger.info(
-            f"Invoking AgentCore supervisor for session {session_id} with goal: {goal[:100]}..."
-        )
 
-        response = self.runtime_client.invoke_agent(
-            agentId=self.planner_id,
-            agentAliasId=self.planner_alias_id,
-            sessionId=session_id,
-            inputText=input_text,
-            enableTrace=True,
-        )
+        logger.info(f"Invoking AgentCore supervisor for session {session_id}")
 
-        # YIELD events immediately as they arrive - NO BUFFERING
-        chunk_count = 0
-        trace_count = 0
+        # Create async Bedrock client
+        async with self.session.client(
+            "bedrock-agent-runtime", region_name=self.region
+        ) as runtime_client:
 
-        for event in response["completion"]:
-            if "chunk" in event:
-                # Stream text chunks
-                text = event["chunk"]["bytes"].decode("utf-8")
-                chunk_count += 1
-                logger.debug(
-                    f"AgentCore CHUNK #{chunk_count}: {len(text)} chars - '{text[:50]}...'"
-                )
-                yield {"type": "chunk", "text": text, "session_id": session_id}
-            elif "trace" in event:
-                # Stream trace events (agent reasoning, collaborator calls, etc.)
-                trace_count += 1
-                trace_data = self._parse_trace_event(event)
-                agent = trace_data.get("agent", "Unknown")
-                logger.debug(f"AgentCore TRACE #{trace_count}: Agent={agent}")
+            response = await runtime_client.invoke_agent(
+                agentId=self.planner_id,
+                agentAliasId=self.planner_alias_id,
+                sessionId=session_id,
+                inputText=input_text,
+                enableTrace=True,
+            )
 
-                # Log specific trace details
-                if "reasoning" in trace_data:
-                    logger.debug(
-                        f"  Agent reasoning: {trace_data['reasoning'][:100]}..."
-                    )
-                if "calling_collaborator" in trace_data:
-                    logger.debug(
-                        f"  Calling collaborator: {trace_data['calling_collaborator']}"
-                    )
-                if "collaborator_response" in trace_data:
-                    collab_resp = trace_data["collaborator_response"]
-                    logger.debug(
-                        f"  Collaborator response: {collab_resp.get('agent', 'Unknown')} - {len(collab_resp.get('output', ''))} chars"
-                    )
+            chunk_count = 0
+            trace_count = 0
 
-                yield {"type": "trace", "data": trace_data, "session_id": session_id}
+            # ASYNC iteration - no blocking!
+            async for event in response["completion"]:
+                if "chunk" in event:
+                    text = event["chunk"]["bytes"].decode("utf-8")
+                    chunk_count += 1
+                    logger.debug(f"AgentCore CHUNK #{chunk_count}")
+                    yield {"type": "chunk", "text": text, "session_id": session_id}
 
-        logger.info(
-            f"AgentCore stream completed: {chunk_count} chunks, {trace_count} traces"
-        )
+                elif "trace" in event:
+                    trace_count += 1
+                    trace_data = self._parse_trace_event(event)
+                    logger.debug(f"AgentCore TRACE #{trace_count}")
+                    yield {
+                        "type": "trace",
+                        "data": trace_data,
+                        "session_id": session_id,
+                    }
+
+            logger.info(f"Stream completed: {chunk_count} chunks, {trace_count} traces")
