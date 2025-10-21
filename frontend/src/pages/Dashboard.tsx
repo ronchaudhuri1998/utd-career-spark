@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useSSE } from "@/hooks/useSSE";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 import OnboardingModal from "@/components/OnboardingModal";
 
@@ -135,7 +135,7 @@ const Dashboard = () => {
     setSessionId,
   } = useUserData();
   const { isConnected, isRunning, runningAgents, progress, result, error } =
-    useWebSocket();
+    useSSE();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const jobMarketLines = useMemo(

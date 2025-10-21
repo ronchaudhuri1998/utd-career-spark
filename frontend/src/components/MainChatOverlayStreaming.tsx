@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserData } from "@/contexts/UserDataContext";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useSSE } from "@/hooks/useSSE";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import ChatHeader from "@/components/chat/ChatHeader";
 import ChatHistory from "@/components/chat/ChatHistory";
@@ -20,14 +20,16 @@ const MainChatOverlayStreaming = ({
     progress,
     result,
     error,
+    responseText,
     startPlan,
     clearProgress,
-  } = useWebSocket();
+  } = useSSE();
 
   const { chatHistory, addUserMessage, addErrorMessage } = useChatMessages({
     progress,
     result,
     error,
+    responseText,
   });
 
   const [chatMessage, setChatMessage] = useState("");

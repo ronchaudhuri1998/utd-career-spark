@@ -1,21 +1,58 @@
 import { useState, useEffect, useRef } from "react";
 import { Message } from "@/components/chat/ChatMessage";
-import { AgentProgress, PlanComplete } from "@/lib/websocket";
+import { AgentProgress, PlanComplete } from "@/hooks/useSSE";
 
 interface UseChatMessagesProps {
   progress: AgentProgress[];
   result: PlanComplete | null;
   error: string | null;
+  responseText?: string;
 }
 
 export const useChatMessages = ({
   progress,
   result,
   error,
+  responseText,
 }: UseChatMessagesProps) => {
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const agentMessagesRef = useRef<Map<string, Message>>(new Map());
   const processedProgressRef = useRef<Set<string>>(new Set());
+  const assistantMessageIdRef = useRef<number | null>(null);
+
+  // Handle response text updates (streaming assistant message)
+  useEffect(() => {
+    if (responseText && responseText.trim()) {
+      setChatHistory((prev) => {
+        const assistantMessageId = assistantMessageIdRef.current;
+
+        if (assistantMessageId !== null) {
+          // Update existing assistant message
+          const messageIndex = prev.findIndex(
+            (msg) => msg.id === assistantMessageId
+          );
+          if (messageIndex >= 0) {
+            const updatedMessages = [...prev];
+            updatedMessages[messageIndex] = {
+              ...updatedMessages[messageIndex],
+              text: responseText,
+            };
+            return updatedMessages;
+          }
+        }
+
+        // Create new assistant message
+        const newAssistantMessage: Message = {
+          id: Date.now() + 1000, // Use a unique ID for assistant message
+          text: responseText,
+          isUser: false,
+        };
+
+        assistantMessageIdRef.current = newAssistantMessage.id;
+        return [...prev, newAssistantMessage];
+      });
+    }
+  }, [responseText]);
 
   // Handle live agent progress updates
   useEffect(() => {
@@ -156,6 +193,8 @@ export const useChatMessages = ({
     }
   }, [progress]);
 
+  // Collaborator responses are now handled in useSSE.ts and passed as progress events
+
   // Handle errors
   useEffect(() => {
     if (error) {
@@ -192,6 +231,7 @@ export const useChatMessages = ({
     setChatHistory([]);
     agentMessagesRef.current.clear();
     processedProgressRef.current.clear();
+    assistantMessageIdRef.current = null;
   };
 
   return {
