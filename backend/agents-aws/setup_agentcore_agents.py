@@ -8,6 +8,7 @@ import boto3
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,6 +20,19 @@ print(f"Using timestamp suffix: {TIMESTAMP}")
 control_client = boto3.client(
     "bedrock-agent", region_name=os.getenv("AWS_REGION", "us-east-1")
 )
+
+# Path to prompts directory
+PROMPTS_DIR = Path(__file__).parent / "prompts"
+
+
+def load_prompt(filename: str) -> str:
+    """Load agent prompt from external file."""
+    prompt_path = PROMPTS_DIR / filename
+    if not prompt_path.exists():
+        raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
+
+    with open(prompt_path, "r") as f:
+        return f.read().strip()
 
 
 def delete_all_existing_agents():
@@ -158,56 +172,32 @@ def main():
     delete_all_existing_agents()
 
     # Create sub-agents first
+    print("\nLoading agent prompts from external files...")
+    job_prompt = load_prompt("job_market_agent.txt")
+    course_prompt = load_prompt("course_catalog_agent.txt")
+    project_prompt = load_prompt("project_advisor_agent.txt")
+    planner_prompt = load_prompt("career_planner_supervisor.txt")
+
     job_id, job_alias_id, job_alias_arn = create_and_prepare_agent(
         f"UTD-JobMarket-{TIMESTAMP}",
-        """You are the Job Market Analyst within the UTD Career Guidance AI System.
-Analyze current hiring needs, emerging roles, salary outlook, and core skills for technology careers relevant to UTD students.
-Be precise, cite trends or assumptions, and flag any missing data.
-Use short headings and bullet points so students can act immediately.
-
-When you need current job market data, use your tools:
-- scrape_hackernews_jobs: to get recent job postings
-- scrape_itjobswatch_skills: to get trending skills and salary data""",
+        job_prompt,
         with_tools=True,
     )
 
     course_id, course_alias_id, course_alias_arn = create_and_prepare_agent(
         f"UTD-CourseCatalog-{TIMESTAMP}",
-        """You are the Course Catalog Specialist within the UTD Career Guidance AI System.
-Align employer-demanded skills with UT Dallas courses, certificates, and campus resources.
-Be precise, cite trends or assumptions, and flag any missing data.
-Use short headings and bullet points so students can act immediately.
-
-Recommend UT Dallas courses that align with job market needs and career goals.
-Consider the student's background, current knowledge, and time constraints.""",
+        course_prompt,
     )
 
     project_id, project_alias_id, project_alias_arn = create_and_prepare_agent(
         f"UTD-ProjectAdvisor-{TIMESTAMP}",
-        """You are the Project Advisor within the UTD Career Guidance AI System.
-Design practical, scoped project ideas and technology stacks that align with the student's target roles.
-Be precise, cite trends or assumptions, and flag any missing data.
-Use short headings and bullet points so students can act immediately.
-
-Suggest hands-on projects and technologies to build a standout portfolio.
-Make recommendations based on job market demand and the student's skill level.""",
+        project_prompt,
     )
 
     # Create supervisor agent (skip prepare until collaborators are added)
     planner_id, _, _ = create_and_prepare_agent(
         f"UTD-CareerPlanner-{TIMESTAMP}",
-        """You are the Career Planner Orchestrator - the supervisor agent coordinating specialist agents.
-Synthesize job market research, academic guidance, and project advice into a cohesive, staged career plan.
-Be precise, cite trends or assumptions, and flag any missing data.
-Use short headings and bullet points so students can act immediately.
-
-You coordinate with three specialist agents:
-1. JobMarketAgent - analyzes hiring trends and skill demands
-2. CourseCatalogAgent - recommends UT Dallas courses
-3. ProjectAdvisorAgent - suggests portfolio projects
-
-When a student asks for career guidance, delegate to the appropriate specialist agents to gather information,
-then synthesize their insights into a comprehensive, actionable career plan.""",
+        planner_prompt,
         is_supervisor=True,
         skip_prepare=True,  # Can't prepare until collaborators are added
     )

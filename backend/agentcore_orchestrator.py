@@ -2,8 +2,12 @@
 
 import boto3
 import os
+import logging
 from typing import Dict, Iterator, Optional
 from dotenv import load_dotenv
+
+# Configure logging for orchestrator
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -94,6 +98,9 @@ class AgentCoreOrchestrator:
     ) -> Iterator[Dict]:
         """Stream supervisor agent response as events arrive (TRUE streaming)."""
         input_text = self._build_input_text(goal, extra_context)
+        logger.info(
+            f"Invoking AgentCore supervisor for session {session_id} with goal: {goal[:100]}..."
+        )
 
         response = self.runtime_client.invoke_agent(
             agentId=self.planner_id,
@@ -104,13 +111,42 @@ class AgentCoreOrchestrator:
         )
 
         # YIELD events immediately as they arrive - NO BUFFERING
+        chunk_count = 0
+        trace_count = 0
+
         for event in response["completion"]:
             if "chunk" in event:
                 # Stream text chunks
                 text = event["chunk"]["bytes"].decode("utf-8")
+                chunk_count += 1
+                logger.debug(
+                    f"AgentCore CHUNK #{chunk_count}: {len(text)} chars - '{text[:50]}...'"
+                )
                 yield {"type": "chunk", "text": text, "session_id": session_id}
             elif "trace" in event:
                 # Stream trace events (agent reasoning, collaborator calls, etc.)
+                trace_count += 1
                 trace_data = self._parse_trace_event(event)
+                agent = trace_data.get("agent", "Unknown")
+                logger.debug(f"AgentCore TRACE #{trace_count}: Agent={agent}")
+
+                # Log specific trace details
+                if "reasoning" in trace_data:
+                    logger.debug(
+                        f"  Agent reasoning: {trace_data['reasoning'][:100]}..."
+                    )
+                if "calling_collaborator" in trace_data:
+                    logger.debug(
+                        f"  Calling collaborator: {trace_data['calling_collaborator']}"
+                    )
+                if "collaborator_response" in trace_data:
+                    collab_resp = trace_data["collaborator_response"]
+                    logger.debug(
+                        f"  Collaborator response: {collab_resp.get('agent', 'Unknown')} - {len(collab_resp.get('output', ''))} chars"
+                    )
+
                 yield {"type": "trace", "data": trace_data, "session_id": session_id}
 
+        logger.info(
+            f"AgentCore stream completed: {chunk_count} chunks, {trace_count} traces"
+        )

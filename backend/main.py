@@ -8,10 +8,17 @@ from typing import Optional, Dict, List
 import json
 import os
 import uuid
+import logging
 from dotenv import load_dotenv
 
 from claude_client import claude_chat
 from agentcore_orchestrator import AgentCoreOrchestrator
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -25,9 +32,16 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -221,22 +235,64 @@ async def api_plan_stream(request: PlanRequest):
 
     async def event_generator():
         """Generate Server-Sent Events from AgentCore stream."""
+        logger.info(
+            f"Starting SSE stream for session {session_id} with goal: {request.goal[:100]}..."
+        )
+
         try:
             # Send session ID first
-            yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+            session_event = {"type": "session", "session_id": session_id}
+            session_data = f"data: {json.dumps(session_event)}\n\n"
+            logger.info(f"SSE Event [SESSION]: {session_event}")
+            yield session_data
 
             # Stream events from AgentCore
+            event_count = 0
             for event in orchestrator.invoke_supervisor_stream(
                 goal=request.goal, session_id=session_id, extra_context=extra_context
             ):
-                yield f"data: {json.dumps(event)}\n\n"
+                event_count += 1
+                event_data = f"data: {json.dumps(event)}\n\n"
+
+                # Log different event types with appropriate detail
+                if event.get("type") == "chunk":
+                    logger.info(
+                        f"SSE Event [CHUNK #{event_count}]: {len(event.get('text', ''))} chars - '{event.get('text', '')[:50]}...'"
+                    )
+                elif event.get("type") == "trace":
+                    trace_data = event.get("data", {})
+                    agent = trace_data.get("agent", "Unknown")
+                    logger.info(f"SSE Event [TRACE #{event_count}]: Agent={agent}")
+                    if "reasoning" in trace_data:
+                        logger.info(f"  Reasoning: {trace_data['reasoning'][:100]}...")
+                    if "calling_collaborator" in trace_data:
+                        logger.info(
+                            f"  Calling collaborator: {trace_data['calling_collaborator']}"
+                        )
+                    if "collaborator_response" in trace_data:
+                        collab_resp = trace_data["collaborator_response"]
+                        logger.info(
+                            f"  Collaborator response from {collab_resp.get('agent', 'Unknown')}: {len(collab_resp.get('output', ''))} chars"
+                        )
+                else:
+                    logger.info(f"SSE Event [UNKNOWN #{event_count}]: {event}")
+
+                yield event_data
 
             # Send completion event
-            yield f'data: {json.dumps({"type": "done"})}\n\n'
+            done_event = {"type": "done"}
+            done_data = f"data: {json.dumps(done_event)}\n\n"
+            logger.info(
+                f"SSE Event [DONE]: Stream completed after {event_count} events"
+            )
+            yield done_data
 
         except Exception as exc:
             # Stream error event
-            yield f'data: {json.dumps({"type": "error", "message": str(exc)})}\n\n'
+            error_event = {"type": "error", "message": str(exc)}
+            error_data = f"data: {json.dumps(error_event)}\n\n"
+            logger.error(f"SSE Event [ERROR]: {exc}")
+            yield error_data
 
     return StreamingResponse(
         event_generator(),
