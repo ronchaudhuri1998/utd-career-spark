@@ -3,28 +3,44 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BookOpen, GraduationCap, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  GraduationCap,
+  AlertCircle,
+  TestTube2,
+} from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
-
-const toSections = (text: string) =>
-  text
-    .split(/\n\n+/)
-    .map((section) => section.trim())
-    .filter(Boolean);
+import { validateCourseData } from "@/types/course";
+import { CourseList } from "@/components/course/CourseList";
+import { CourseInsightCards } from "@/components/course/CourseInsightCards";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { mockCourseData } from "@/data/mockCourseData";
+import { toast } from "sonner";
 
 const Academics = () => {
   const navigate = useNavigate();
-  const { agentOutputs, sectionLoading, userData } = useUserData();
+  const { agentOutputs, sectionLoading, userData, setAgentOutputs } =
+    useUserData();
 
-  const sections = useMemo(
-    () => toSections(agentOutputs.coursePlan),
-    [agentOutputs.coursePlan]
-  );
+  // Validate and parse course data
+  const parsedData = useMemo(() => {
+    if (!agentOutputs.coursePlan) return null;
+    return validateCourseData(agentOutputs.coursePlan);
+  }, [agentOutputs.coursePlan]);
+
+  const loadMockData = () => {
+    setAgentOutputs({
+      ...agentOutputs,
+      coursePlan: mockCourseData,
+    });
+    toast.success("Mock course data loaded successfully!");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-5 flex items-center gap-4">
+        <div className="w-full px-6 py-5 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -39,65 +55,119 @@ const Academics = () => {
               Academic Roadmap
             </h1>
             <p className="text-sm text-muted-foreground">
-              Coursework and resources aligned with {userData.careerGoal || "your goal"}
+              Coursework and resources aligned with{" "}
+              {userData.careerGoal || "your goal"}
             </p>
           </div>
+          <Badge
+            variant={sectionLoading.academics ? "secondary" : "outline"}
+            className="ml-auto"
+          >
+            {sectionLoading.academics ? "Refreshing" : "Updated"}
+          </Badge>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 space-y-6">
-        <Card className="border-2 shadow-card">
-          <CardHeader className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Course & Skill Plan</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Curated by the Course Catalog Agent using job-market signals and your background.
-              </p>
-            </div>
-            <Badge variant={sectionLoading.academics ? "secondary" : "outline"}>
-              {sectionLoading.academics ? "Refreshing" : "Ready"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {sections.length ? (
-              sections.map((section, idx) => (
-                <div
-                  key={`academics-section-${idx}`}
-                  className="border border-primary/20 bg-primary/5 rounded-xl p-4 space-y-2"
+      <main className="w-full px-6 py-8 space-y-6">
+        {!agentOutputs.coursePlan ? (
+          <Card className="border-2">
+            <CardContent className="py-12 text-center space-y-4">
+              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">No Course Data</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Run the onboarding flow to fetch personalized course
+                  recommendations tailored to your career goal.
+                </p>
+                <Button
+                  onClick={loadMockData}
+                  variant="outline"
+                  className="gap-2"
                 >
-                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {section}
+                  <TestTube2 className="w-4 h-4" />
+                  Load Mock Data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : parsedData ? (
+          <>
+            <div className="grid lg:grid-cols-2 gap-6 w-full">
+              {/* Left: Course Catalog */}
+              <div>
+                <CourseList courses={parsedData.courses} />
+              </div>
+
+              {/* Right: Course Insights */}
+              <div>
+                <CourseInsightCards insights={parsedData.insights} />
+              </div>
+            </div>
+
+            <Card className="border border-dashed border-primary/40 bg-white">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-primary" />
+                  How to act on this roadmap
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Meet with your academic advisor to confirm prerequisites and
+                  scheduling for the recommended courses.
+                </p>
+                <p>
+                  Layer the suggested extracurricular resources into your
+                  semester plan to reinforce the skills employers expect.
+                </p>
+                <p>
+                  Regenerate the plan as your goals evolve to keep this roadmap
+                  current.
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Unable to Parse Data</AlertTitle>
+              <AlertDescription>
+                <div className="flex items-center justify-between gap-4">
+                  <span>
+                    The course data could not be parsed into the interactive
+                    dashboard format.
+                  </span>
+                  <Button
+                    onClick={loadMockData}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 shrink-0"
+                  >
+                    <TestTube2 className="w-3 h-3" />
+                    Load Mock Data
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-lg">Course & Skill Plan</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Unable to parse data into interactive dashboard format.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-primary/20 bg-primary/5 rounded-xl p-4">
+                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed font-mono">
+                    {agentOutputs.coursePlan}
                   </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Generate a plan to receive course recommendations, campus resources, and sequencing guidance.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-dashed border-primary/40 bg-white">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              How to act on this roadmap
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Meet with your academic advisor to confirm prerequisites and scheduling for the recommended courses.
-            </p>
-            <p>
-              Layer the suggested extracurricular resources into your semester plan to reinforce the skills employers expect.
-            </p>
-            <p className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-primary" />
-              Regenerate the plan as your goals evolve to keep this roadmap current.
-            </p>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );

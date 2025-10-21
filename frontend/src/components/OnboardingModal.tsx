@@ -369,7 +369,7 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
                 onClick={handleDone}
                 className="flex-1 bg-gradient-primary hover:opacity-90 transition-opacity"
               >
-                Done - Go to Dashboard
+                Done
               </Button>
             </div>
           )}
