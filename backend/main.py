@@ -1,148 +1,278 @@
+"""UTD Career Spark API - FastAPI backend with AWS Bedrock AgentCore."""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import uvicorn
-from typing import Dict, Any
-import os
-from dotenv import load_dotenv
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from claude_client import claude_chat
+from typing import Optional, Dict, List
+import json
+import os
+import uuid
+from dotenv import load_dotenv
 
-# Load environment variables
+from claude_client import claude_chat
+from agentcore_orchestrator import AgentCoreOrchestrator
+
 load_dotenv()
 
-
-# Pydantic models
-class CareerGoalRequest(BaseModel):
-    goal: str
-
-
-class CareerGoalResponse(BaseModel):
-    original_goal: str
-    processed_goal: str
-
-
-# Create FastAPI instance
+# Create FastAPI app
 app = FastAPI(
     title="UTD Career Spark API",
-    description="Backend API for UTD Career Spark application",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    description="Career guidance system powered by AWS Bedrock AgentCore",
+    version="2.0.0",
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ],  # Add your frontend URLs
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Health check endpoint
-@app.get("/")
-async def root():
-    return {"message": "UTD Career Spark API is running!"}
+# Initialize AgentCore orchestrator
+orchestrator = AgentCoreOrchestrator()
 
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "message": "API is operational"}
+# Pydantic Models
+class IntroRequest(BaseModel):
+    goal: str
+    session_id: Optional[str] = None
 
 
-# Basic API routes
-@app.get("/api/users")
-async def get_users():
-    """Get all users - placeholder for now"""
-    return {"users": [], "message": "Users endpoint - to be implemented"}
+class PlanRequest(BaseModel):
+    goal: str
+    session_id: Optional[str] = None
+    student_year: Optional[str] = None
+    courses_taken: Optional[str] = None
+    about: Optional[str] = None
+    time_commitment: Optional[str] = None
+    contact_email: Optional[str] = None
 
 
-@app.get("/api/users/{user_id}")
-async def get_user(user_id: int):
-    """Get a specific user by ID"""
-    if user_id < 1:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    return {"user_id": user_id, "message": "User endpoint - to be implemented"}
+class ProcessGoalRequest(BaseModel):
+    goal: str
 
 
-@app.post("/api/users")
-async def create_user(user_data: Dict[str, Any]):
-    """Create a new user"""
-    return {"message": "User creation endpoint - to be implemented", "data": user_data}
+# Helper Functions
+def generate_session_id() -> str:
+    """Generate a unique session identifier."""
+    return uuid.uuid4().hex
 
 
-def _process_career_goal(natural_language_goal: str) -> str:
-    """Process natural language career goal into a structured, actionable format."""
+def classify_goal(goal: str) -> tuple[bool, str]:
+    """Classify if the goal is a legitimate career goal."""
     prompt = (
-        f"Process this natural language career goal into a clear, structured career goal:\n\n"
+        "Determine if the following user statement expresses a legitimate career goal or request for career guidance.\n"
+        "Respond with either:\n"
+        "ALLOW: <very short rationale>\n"
+        "REJECT: <brief reason why it's not a career goal>\n\n"
+        f"User statement: {goal.strip()}\n"
+    )
+    try:
+        result = claude_chat(
+            prompt,
+            system_prompt="You are a strict classifier for career-goal intents.",
+            max_tokens=60,
+            temperature=0,
+        ).strip()
+    except Exception:
+        # Fallback to keyword check
+        lowered = goal.lower()
+        keywords = [
+            "career",
+            "job",
+            "role",
+            "position",
+            "engineer",
+            "consult",
+            "manager",
+            "designer",
+            "analyst",
+        ]
+        if any(word in lowered for word in keywords):
+            return True, "ALLOW: heuristic keyword match"
+        return False, "REJECT: does not appear to be a role or career goal."
+
+    if result.upper().startswith("ALLOW"):
+        return True, result
+    if result.upper().startswith("REJECT"):
+        return False, result
+    return False, f"REJECT: Unexpected classifier output ({result})"
+
+
+def generate_intro_message(goal: str) -> str:
+    """Generate a welcoming intro message for the career goal."""
+    prompt = (
+        "The student said their primary career goal is:"
+        f" {goal}.\n"
+        "Respond in exactly two sentences:\n"
+        "1) Celebrate the goal and mention one or two exciting aspects or opportunities, including a concise salary hint if known.\n"
+        "2) Ask them to share their current year, recent courses or experiences, and weekly time commitment; remind them they can sign up later so their details are saved.\n"
+        "Keep the tone upbeat, stay under 70 words total, and focus strictly on academics, skills, and career planning."
+    )
+    return claude_chat(
+        prompt,
+        system_prompt="You are a concise, energizing career coach who keeps responses under 120 words.",
+        max_tokens=180,
+        temperature=0.3,
+    ).strip()
+
+
+def process_career_goal(natural_language_goal: str) -> str:
+    """Process natural language career goal into a structured format."""
+    prompt = (
+        f"Transform this natural language career goal into a clear, professional career goal statement:\n\n"
         f"Original: {natural_language_goal}\n\n"
-        f"Please transform this into a professional, specific career goal that includes:\n"
-        f"1. The specific role or position\n"
-        f"2. Key skills or technologies mentioned\n"
-        f"3. Industry or domain focus\n"
-        f"4. Any specific aspirations or specializations\n\n"
-        f"Format the response as a clear, concise career goal statement (2-3 sentences max).\n"
-        f"Make it professional and actionable for career planning purposes."
+        f"Create a single, well-written paragraph (3-4 sentences) that describes their career aspirations. "
+        f"Write it as a flowing narrative, not a bulleted list. "
+        f"Start with their desired role, mention key skills/technologies, and end with their long-term vision. "
+        f"Make it sound natural and professional, like something they would write in a bio or resume summary."
     )
     try:
         return claude_chat(
             prompt,
-            system_prompt="You are a career guidance expert who helps students clarify and structure their career goals into professional, actionable statements.",
+            system_prompt="You are a career guidance expert who helps students write clear, professional career goal statements. Write as a single flowing paragraph, not a list.",
             max_tokens=200,
-            temperature=0.2,
+            temperature=0.3,
         ).strip()
-    except Exception as exc:
-        # Fallback: return the original goal if processing fails
+    except Exception:
         return natural_language_goal
 
 
-@app.post("/api/career-goals/process", response_model=CareerGoalResponse)
-async def process_career_goal(request: CareerGoalRequest):
+# API Endpoints
+@app.get("/")
+async def root():
+    """Root endpoint - health check."""
+    return {
+        "status": "ok",
+        "service": "UTD Career Spark API",
+        "version": "2.0.0",
+        "framework": "FastAPI + AWS Bedrock AgentCore",
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "message": "API is operational"}
+
+
+@app.post("/api/intro")
+async def api_intro(request: IntroRequest):
+    """
+    Validate career goal and generate welcoming intro message.
+
+    This endpoint makes 2 direct Claude calls:
+    1. Goal classification (ALLOW/REJECT)
+    2. Intro message generation
+    """
+    goal = request.goal.strip()
+    session_id = request.session_id or generate_session_id()
+
+    if not goal:
+        raise HTTPException(status_code=400, detail="Goal is required.")
+
+    try:
+        # Classify goal
+        allowed, classifier_msg = classify_goal(goal)
+        if not allowed:
+            raise HTTPException(status_code=400, detail=classifier_msg)
+
+        # Generate intro message
+        message = generate_intro_message(goal)
+
+        return {"message": message, "session_id": session_id}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate introduction: {exc}"
+        )
+
+
+@app.post("/api/plan")
+async def api_plan_stream(request: PlanRequest):
+    """
+    Generate career plan using AWS AgentCore supervisor agent (SSE streaming).
+
+    The supervisor agent:
+    - Uses session memory to recall previous interactions
+    - Decides autonomously whether to call collaborator agents
+    - Streams responses in real-time via Server-Sent Events
+
+    All follow-up questions should use the same session_id.
+    """
+    session_id = request.session_id or generate_session_id()
+
+    # Build extra context
+    extra_context = {
+        "student_background": request.about,
+        "degree_level": request.student_year,
+        "courses_taken": request.courses_taken,
+        "time_commitment": request.time_commitment,
+        "contact_email": request.contact_email,
+    }
+
+    if not request.goal.strip():
+        raise HTTPException(status_code=400, detail="Goal is required.")
+
+    async def event_generator():
+        """Generate Server-Sent Events from AgentCore stream."""
+        try:
+            # Send session ID first
+            yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+
+            # Stream events from AgentCore
+            for event in orchestrator.invoke_supervisor_stream(
+                goal=request.goal, session_id=session_id, extra_context=extra_context
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
+
+            # Send completion event
+            yield f'data: {json.dumps({"type": "done"})}\n\n'
+
+        except Exception as exc:
+            # Stream error event
+            yield f'data: {json.dumps({"type": "error", "message": str(exc)})}\n\n'
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )
+
+
+@app.get("/api/status")
+async def api_status():
+    """Get AgentCore agent configuration status."""
+    return {
+        "agents_configured": bool(orchestrator.planner_id),
+        "planner_id": orchestrator.planner_id,
+        "planner_alias_id": orchestrator.planner_alias_id,
+        "region": os.getenv("AWS_REGION", "us-east-1"),
+    }
+
+
+@app.post("/api/process-career-goal")
+async def api_process_career_goal(request: ProcessGoalRequest):
     """Process natural language career goal into structured format."""
     if not request.goal.strip():
         raise HTTPException(status_code=400, detail="Career goal is required.")
 
     try:
-        processed_goal = _process_career_goal(request.goal)
-        return CareerGoalResponse(
-            original_goal=request.goal, processed_goal=processed_goal
-        )
+        processed_goal = process_career_goal(request.goal)
+        return {"original_goal": request.goal, "processed_goal": processed_goal}
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to process career goal: {str(exc)}"
+            status_code=500, detail=f"Failed to process career goal: {exc}"
         )
 
 
-# Error handlers
-@app.exception_handler(404)
-async def not_found_handler(request, exc):
-    return JSONResponse(
-        status_code=404, content={"message": "Endpoint not found", "detail": str(exc)}
-    )
-
-
-@app.exception_handler(500)
-async def internal_error_handler(request, exc):
-    return JSONResponse(
-        status_code=500,
-        content={
-            "message": "Internal server error",
-            "detail": "An unexpected error occurred",
-        },
-    )
-
-
+# Run with: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 if __name__ == "__main__":
-    # Run the server
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,  # Enable auto-reload for development
-        log_level="info",
-    )
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

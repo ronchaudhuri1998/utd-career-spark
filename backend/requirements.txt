@@ -1,6 +1,8 @@
-strands-agents
+boto3
+python-dotenv
 bedrock-agentcore
-flask
-flask-cors
-flask-socketio
-python-socketio
+strands-agents
+fastapi
+uvicorn[standard]
+sse-starlette
+pydantic

@@ -56,7 +56,7 @@ export interface ProcessCareerGoalResponse {
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
-  "http://127.0.0.1:5000";
+  "http://127.0.0.1:8000";
 
 export async function requestIntro(
   goal: string,
@@ -83,10 +83,19 @@ export async function requestIntro(
   return data as IntroResponse;
 }
 
+export interface StreamEvent {
+  type: "session" | "chunk" | "trace" | "done" | "error";
+  session_id?: string;
+  text?: string;
+  data?: any;
+  message?: string;
+}
+
 export async function generatePlan(
   goal: string,
   sessionId?: string,
-  extras?: PlanRequestExtras
+  extras?: PlanRequestExtras,
+  onProgress?: (event: StreamEvent) => void
 ): Promise<AgentWorkflowResponse> {
   const payload: Record<string, unknown> = { goal };
   if (sessionId) {
@@ -106,54 +115,106 @@ export async function generatePlan(
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
-    const message =
-      typeof data?.error === "string" ? data.error : response.statusText;
-    throw new Error(message || "Failed to generate plan");
+    throw new Error(`Failed to generate plan: ${response.statusText}`);
   }
 
-  return data as AgentWorkflowResponse;
-}
+  if (!response.body) {
+    throw new Error("Response body is null");
+  }
 
-export async function sendChatMessage(
-  request: ChatRequest
-): Promise<ChatResponse> {
-  const payload: Record<string, unknown> = {
-    message: request.message,
-    goal: request.goal,
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  let resultSessionId = sessionId || "";
+  let fullText = "";
+  const traces: any[] = [];
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+
+      // Keep last incomplete line in buffer
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const event: StreamEvent = JSON.parse(line.slice(6));
+
+            if (event.type === "session" && event.session_id) {
+              resultSessionId = event.session_id;
+            } else if (event.type === "chunk" && event.text) {
+              fullText += event.text;
+            } else if (event.type === "trace" && event.data) {
+              traces.push(event.data);
+            } else if (event.type === "error") {
+              throw new Error(event.message || "Stream error");
+            }
+
+            // Call progress callback
+            if (onProgress) {
+              onProgress(event);
+            }
+          } catch (e) {
+            console.warn("Failed to parse SSE event:", line, e);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return {
+    goal,
+    session_id: resultSessionId,
+    final_plan: fullText,
+    trace: traces,
   };
-  if (request.sessionId) {
-    payload.session_id = request.sessionId;
-  }
-  if (request.history) {
-    payload.history = request.history;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message =
-      typeof data?.error === "string" ? data.error : response.statusText;
-    throw new Error(message || "Chat request failed");
-  }
-
-  return data as ChatResponse;
 }
 
-export async function getAgentCoreStatus(): Promise<StatusResponse> {
+/**
+ * Send follow-up questions using the same session_id.
+ * This routes through the supervisor agent which decides whether to
+ * answer directly or call collaborator agents.
+ */
+export async function sendChatMessage(
+  request: ChatRequest,
+  onProgress?: (event: StreamEvent) => void
+): Promise<ChatResponse> {
+  // Route through generatePlan with the same session
+  const result = await generatePlan(
+    request.message,
+    request.sessionId,
+    undefined,
+    onProgress
+  );
+
+  return {
+    reply: result.final_plan || "",
+    session_id: result.session_id,
+  };
+}
+
+export interface AgentCoreStatus {
+  agents_configured: boolean;
+  planner_id: string | null;
+  planner_alias_id: string | null;
+  region: string;
+}
+
+export async function getAgentCoreStatus(): Promise<AgentCoreStatus> {
   const response = await fetch(`${API_BASE_URL}/api/status`);
   if (!response.ok) {
     throw new Error(`Status check failed: ${response.statusText}`);
   }
-  return (await response.json()) as StatusResponse;
+  return (await response.json()) as AgentCoreStatus;
 }
 
 export async function processCareerGoal(

@@ -53,25 +53,93 @@ def invoke_supervisor(goal, session_id):
                 print(text, end="", flush=True)
 
         elif "trace" in event:
-            # Optional: Log trace information for debugging
-            trace = event["trace"]["trace"]
+            # Enhanced trace information for debugging multi-agent collaboration
+            trace_part = event["trace"]
+            trace = trace_part.get("trace", {})
 
-            # Show when collaborator agents are invoked
-            if "agentCollaboratorInvocationOutput" in trace:
-                collab = trace["agentCollaboratorInvocationOutput"]
-                print(
-                    f"\n[COLLABORATOR: {collab.get('agentCollaboratorName', 'unknown')}]",
-                    flush=True,
-                )
+            # Get agent/collaborator context
+            agent_id = trace_part.get("agentId", "unknown")
+            collaborator_name = trace_part.get("collaboratorName")
+            caller_chain = trace_part.get("callerChain", [])
 
-            # Show agent's reasoning
+            # Determine if this is supervisor or collaborator
+            is_collaborator = collaborator_name is not None
+            agent_label = (
+                f"COLLABORATOR: {collaborator_name}"
+                if is_collaborator
+                else "SUPERVISOR"
+            )
+
+            # Show orchestration traces (reasoning, invocations, observations)
             if "orchestrationTrace" in trace:
                 orch_trace = trace["orchestrationTrace"]
+
+                # 1. Show agent/subagent reasoning
                 if "rationale" in orch_trace:
                     rationale = orch_trace["rationale"]
                     if rationale and rationale.get("text"):
+                        reasoning_text = rationale["text"]
                         print(
-                            f"\n[AGENT REASONING: {rationale['text'][:100]}...]",
+                            f"\n{'='*60}\n[{agent_label} REASONING]\n{reasoning_text}\n{'='*60}",
+                            flush=True,
+                        )
+
+                # 2. Show subagent invocation (calls to collaborators)
+                if "invocationInput" in orch_trace:
+                    invocation = orch_trace["invocationInput"]
+                    invocation_type = invocation.get("invocationType")
+
+                    if invocation_type == "AGENT_COLLABORATOR":
+                        collab_input = invocation.get(
+                            "agentCollaboratorInvocationInput", {}
+                        )
+                        collab_name = collab_input.get(
+                            "agentCollaboratorName", "unknown"
+                        )
+                        collab_arn = collab_input.get(
+                            "agentCollaboratorAliasArn", "N/A"
+                        )
+                        input_text = collab_input.get("input", {}).get("text", "N/A")
+
+                        print(
+                            f"\n{'='*60}\n[CALLING COLLABORATOR: {collab_name}]\n"
+                            f"Input: {input_text}\n"
+                            f"ARN: {collab_arn}\n{'='*60}",
+                            flush=True,
+                        )
+
+                # 3. Show subagent response (observation from collaborators)
+                if "observation" in orch_trace:
+                    observation = orch_trace["observation"]
+                    obs_type = observation.get("type")
+
+                    if obs_type == "AGENT_COLLABORATOR":
+                        collab_output = observation.get(
+                            "agentCollaboratorInvocationOutput", {}
+                        )
+                        collab_name = collab_output.get(
+                            "agentCollaboratorName", "unknown"
+                        )
+                        output_text = collab_output.get("output", {}).get("text", "N/A")
+
+                        print(
+                            f"\n{'='*60}\n[COLLABORATOR RESPONSE: {collab_name}]\n"
+                            f"{output_text}\n{'='*60}",
+                            flush=True,
+                        )
+                    elif obs_type == "ACTION_GROUP":
+                        action_output = observation.get(
+                            "actionGroupInvocation", {}
+                        ).get("text", "N/A")
+                        print(
+                            f"\n[{agent_label} - ACTION GROUP OUTPUT]\n{action_output[:200]}...",
+                            flush=True,
+                        )
+                    elif obs_type == "KNOWLEDGE_BASE":
+                        kb_output = observation.get("knowledgeBaseLookupOutput", {})
+                        num_refs = len(kb_output.get("retrievedReferences", []))
+                        print(
+                            f"\n[{agent_label} - KNOWLEDGE BASE]\nRetrieved {num_refs} references",
                             flush=True,
                         )
 

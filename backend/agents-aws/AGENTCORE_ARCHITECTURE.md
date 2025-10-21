@@ -15,36 +15,36 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         User Request                         │
+│                         User Request                        │
 │              "I want to become a data scientist"            │
 └────────────────────────────┬────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            CareerPlannerAgent (SUPERVISOR)                   │
-│  - Coordinates all specialist agents                         │
-│  - Synthesizes responses                                     │
-│  - Maintains session context                                 │
+│            CareerPlannerAgent (SUPERVISOR)                  │
+│  - Coordinates all specialist agents                        │
+│  - Synthesizes responses                                    │
+│  - Maintains session context                                │
 └──────────┬──────────────────┬──────────────────┬────────────┘
            │                  │                  │
            ▼                  ▼                  ▼
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+┌──────────────────┐ ┌──────────────────┐ ┌───────────────────┐
 │ JobMarketAgent   │ │CourseCatalogAgent│ │ProjectAdvisorAgent│
-│                  │ │                  │ │                  │
-│ Tools:           │ │ Knowledge:       │ │ Knowledge:       │
-│ ├─Lambda: HN Jobs│ │ ├─UTD Courses   │ │ ├─Tech Stacks   │
-│ └─Lambda: Skills │ │ └─Degrees       │ │ └─Project Ideas │
-└──────────┬───────┘ └──────────────────┘ └──────────────────┘
+│                  │ │                  │ │                   │
+│ Tools:           │ │ Knowledge:       │ │ Knowledge:        │
+│ ├─Lambda: HN Jobs│ │ ├─UTD Courses    │ │ ├─Tech Stacks     │
+│ └─Lambda: Skills │ │ └─Degrees        │ │ └─Project Ideas   │
+└──────────┬───────┘ └──────────────────┘ └───────────────────┘
            │
            ▼
-┌──────────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────────────┐
 │         AWS Lambda: UTD-JobMarketTools                        │
 │  - scrape_hackernews_jobs()                                   │
 │  - scrape_itjobswatch_skills()                                │
 └───────────────────────────────────────────────────────────────┘
            │
            ▼
-┌──────────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────────────┐
 │              External Data Sources                            │
 │  - Hacker News Hiring Board                                   │
 │  - IT Jobs Watch                                              │
