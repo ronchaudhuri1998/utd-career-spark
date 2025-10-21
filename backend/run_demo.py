@@ -1,5 +1,5 @@
 # run_demo.py
-"""Web frontend entrypoint for the multi-agent UTD Career Guidance system."""
+"""Backend API server for the multi-agent UTD Career Guidance system."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import sys
 import queue
 import threading
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
-from flask import Flask, jsonify, redirect, render_template, request, session
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 
@@ -72,24 +72,25 @@ AGENT_META = {
 
 
 def create_app() -> Flask:
-    """Create the Flask application that drives the career guidance UI."""
+    """Create the Flask API server for career guidance backend."""
     app = Flask(__name__)
-    app.secret_key = os.getenv("FLASK_SECRET_KEY", "career-guidance-demo")
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*")
+    # Initialize SocketIO for real-time communication
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        async_mode="threading",
+        logger=False,
+        engineio_logger=False,
+    )
 
     def _ensure_session_id(existing: str = "") -> str:
-        """Persist and return the AgentCore session id associated with this client."""
-        sid = existing or session.get("agentcore_session_id", "")
-        if not sid:
-            sid = agentcore_runtime.allocate_session()
-            session["agentcore_session_id"] = sid
-            app_logger.info("Allocated AgentCore session: %s", sid)
-        elif session.get("agentcore_session_id") != sid:
-            session["agentcore_session_id"] = sid
-        return sid
+        """Generate or return the AgentCore session id for this request."""
+        if not existing:
+            existing = agentcore_runtime.allocate_session()
+            app_logger.info("Allocated AgentCore session: %s", existing)
+        return existing
 
     def _agentcore_payload() -> Dict[str, object]:
         return {
@@ -191,96 +192,72 @@ def create_app() -> Flask:
             # Fallback: return the original goal if processing fails
             return natural_language_goal
 
-    @app.route("/", methods=["GET", "POST"])
+    @app.route("/", methods=["GET"])
     def index():
-        goal = ""
-        result = None
-        error = None
-        session_id = session.get("agentcore_session_id", "")
-
-        frontend_url = os.getenv("FRONTEND_DEV_URL")
-        if request.method == "GET" and frontend_url:
-            app_logger.debug("Redirecting to frontend dev server at %s", frontend_url)
-            return redirect(frontend_url)
-
-        if request.method == "POST":
-            goal = request.form.get("goal", "").strip()
-            app_logger.info("Received new career goal: %s", goal or "<empty>")
-            session_id = _ensure_session_id(session_id)
-
-            if not goal:
-                error = "Please enter a career goal."
-            else:
-                try:
-                    result = _run_workflow(goal, session_id)
-                    app_logger.info("Orchestrator completed roadmap synthesis.")
-                except Exception as exc:  # pragma: no cover - surfaced to UI
-                    error = f"Agent workflow failed: {exc}"
-                    app_logger.exception("Agent workflow failed.")
-
-        agentcore_info = _agentcore_payload()
-
-        return render_template(
-            "career_planner.html",
-            goal=goal,
-            result=result,
-            error=error,
-            agent_meta=AGENT_META,
-            agentcore_info=agentcore_info,
-            session_id=session_id,
+        """Health check endpoint."""
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "UTD Career Guidance API",
+                "agentcore": _agentcore_payload(),
+            }
         )
 
     @app.post("/api/intro")
     def api_intro():
-        payload = request.get_json(silent=True) or {}
-        goal = str(payload.get("goal", "")).strip()
-        incoming_session_id = str(payload.get("session_id", "")).strip()
-        session_id = _ensure_session_id(incoming_session_id)
-
-        if not goal:
-            return (
-                jsonify(
-                    {
-                        "error": "Goal is required.",
-                        "agentcore": _agentcore_payload(),
-                    }
-                ),
-                400,
-            )
-
         try:
-            allowed, classifier_msg = _classify_goal(goal)
-            if not allowed:
+            payload = request.get_json(silent=True) or {}
+            goal = str(payload.get("goal", "")).strip()
+            incoming_session_id = str(payload.get("session_id", "")).strip()
+            session_id = _ensure_session_id(incoming_session_id)
+
+            if not goal:
                 return (
                     jsonify(
                         {
-                            "error": classifier_msg,
+                            "error": "Goal is required.",
                             "agentcore": _agentcore_payload(),
                         }
                     ),
                     400,
                 )
-            message = _generate_intro_message(goal)
-        except Exception as exc:  # pragma: no cover - surfaced to client
-            app_logger.exception("Intro generation failed.")
-            return (
-                jsonify(
-                    {
-                        "error": f"Failed to generate introduction: {exc}",
-                        "agentcore": _agentcore_payload(),
-                    }
-                ),
-                500,
-            )
 
-        agentcore_runtime.record_user_goal(session_id, goal)
-        return jsonify(
-            {
-                "message": message,
-                "session_id": session_id,
-                "agentcore": _agentcore_payload(),
-            }
-        )
+            try:
+                allowed, classifier_msg = _classify_goal(goal)
+                if not allowed:
+                    return (
+                        jsonify(
+                            {
+                                "error": classifier_msg,
+                                "agentcore": _agentcore_payload(),
+                            }
+                        ),
+                        400,
+                    )
+                message = _generate_intro_message(goal)
+            except Exception as exc:  # pragma: no cover - surfaced to client
+                app_logger.exception("Intro generation failed.")
+                return (
+                    jsonify(
+                        {
+                            "error": f"Failed to generate introduction: {exc}",
+                            "agentcore": _agentcore_payload(),
+                        }
+                    ),
+                    500,
+                )
+
+            agentcore_runtime.record_user_goal(session_id, goal)
+            return jsonify(
+                {
+                    "message": message,
+                    "session_id": session_id,
+                    "agentcore": _agentcore_payload(),
+                }
+            )
+        except Exception as exc:
+            app_logger.exception("Error in api_intro: %s", exc)
+            return jsonify({"error": f"Server error: {str(exc)}"}), 500
 
     @app.post("/api/plan")
     def api_plan():
@@ -457,48 +434,77 @@ def create_app() -> Flask:
 
         def monitor_queue():
             """Monitor the queue and emit WebSocket updates."""
-            while True:
-                try:
-                    update = update_queue.get(timeout=0.1)
-                    if "type" in update:
-                        if update["type"] == "complete":
-                            socketio.emit("plan_complete", update["result"])
-                            break
-                        elif update["type"] == "error":
-                            socketio.emit("error", {"message": update["message"]})
-                            break
-                    else:
-                        # This is an agent progress update from record()
-                        app_logger.info(f"📡 Emitting agent_progress: {update}")
-                        socketio.emit("agent_progress", update)
-                except queue.Empty:
-                    continue
+            try:
+                while True:
+                    try:
+                        update = update_queue.get(timeout=0.1)
+                        if "type" in update:
+                            if update["type"] == "complete":
+                                socketio.emit("plan_complete", update["result"])
+                                break
+                            elif update["type"] == "error":
+                                socketio.emit("error", {"message": update["message"]})
+                                break
+                        else:
+                            # This is an agent progress update from record()
+                            app_logger.info(f"📡 Emitting agent_progress: {update}")
+                            socketio.emit("agent_progress", update)
+                    except queue.Empty:
+                        continue
+            except Exception as exc:
+                app_logger.exception("Error in monitor_queue: %s", exc)
+                socketio.emit("error", {"message": f"Monitor error: {str(exc)}"})
 
         # Start the workflow in a separate thread
-        workflow_thread = threading.Thread(target=run_workflow_thread)
+        workflow_thread = threading.Thread(target=run_workflow_thread, daemon=True)
         workflow_thread.start()
 
         # Start monitoring in another thread
-        monitor_thread = threading.Thread(target=monitor_queue)
+        monitor_thread = threading.Thread(target=monitor_queue, daemon=True)
         monitor_thread.start()
 
     return app, socketio
 
 
 def main() -> None:
-    """Start the local development server for the web demo."""
+    """Start the backend API server."""
     app, socketio = create_app()
     app_logger.info("===============================================")
-    app_logger.info("UTD Career Guidance AI – Web Demo")
-    app_logger.info("Open your browser to http://127.0.0.1:5000/")
+    app_logger.info("UTD Career Guidance AI – Backend API Server")
+    app_logger.info("API available at http://127.0.0.1:5000/")
+    app_logger.info("WebSocket support enabled for real-time communication")
     app_logger.info("Press CTRL+C to stop the server.")
     app_logger.info("===============================================")
-    app_logger.info(
-        "Starting Flask-SocketIO development server on http://127.0.0.1:5000/"
-    )
-    socketio.run(
-        app, host="127.0.0.1", port=5000, debug=False, allow_unsafe_werkzeug=True
-    )
+
+    # Check if we should use a different server mode
+    server_mode = os.getenv("SERVER_MODE", "development").lower()
+
+    if server_mode == "production":
+        app_logger.info("Starting in production mode")
+        socketio.run(
+            app,
+            host="0.0.0.0",
+            port=5000,
+            debug=False,
+            log_output=False,
+            allow_unsafe_werkzeug=True,
+            use_reloader=False,
+        )
+    else:
+        app_logger.info("Starting Flask-SocketIO development server")
+        try:
+            socketio.run(
+                app,
+                host="127.0.0.1",
+                port=5000,
+                debug=False,
+                log_output=False,
+                allow_unsafe_werkzeug=True,
+                use_reloader=False,  # Disable reloader to prevent threading issues
+            )
+        except Exception as exc:
+            app_logger.exception("Failed to start server: %s", exc)
+            raise
 
 
 if __name__ == "__main__":
