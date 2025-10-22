@@ -271,9 +271,13 @@ async def api_plan_stream(request: PlanRequest):
                         )
                     if "collaborator_response" in trace_data:
                         collab_resp = trace_data["collaborator_response"]
+                        collab_agent = collab_resp.get('agent', 'Unknown')
+                        collab_output = collab_resp.get('output', '')
                         logger.info(
-                            f"  Collaborator response from {collab_resp.get('agent', 'Unknown')}: {len(collab_resp.get('output', ''))} chars"
+                            f"  📤 Collaborator response from {collab_agent}: {len(collab_output)} chars"
                         )
+                        logger.info(f"  📤 Response preview: {collab_output[:200]}...")
+                        logger.info(f"  📤 Full collaborator response structure: {collab_resp}")
                 else:
                     logger.info(f"SSE Event [UNKNOWN #{event_count}]: {event}")
 
