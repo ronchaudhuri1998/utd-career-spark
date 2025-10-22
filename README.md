@@ -1,7 +1,5 @@
 # UTD Career Spark — Fullstack Application
 
-Comprehensive developer documentation for the UTD Career Spark repository. This README covers everything a developer needs to get the app running and contributing on Windows, macOS, and Linux — including unified launchers (`start_all.sh` and `start_all.ps1`), Docker, and Lambda deployment guidance.
-
 Table of contents
 - Project overview
 - Repository layout
@@ -18,19 +16,6 @@ Table of contents
 - Contribution & development workflow
 - Security and operational notes
 - License
-
----
-
-## Project overview
-
-UTD Career Spark is a small fullstack application used to explore job market data and related tooling. The repo contains:
-
-- A frontend (React + Vite + Tailwind) under `frontend/`
-- A Python backend (Flask + SocketIO or similar) under `backend/`
-- Utilities and deployment helpers under `backend/agents-aws/` (includes `deploy_lambda.py`)
-- Developer convenience scripts at the repository root: `start_all.sh` (bash) and `start_all.ps1` (PowerShell)
-
-This README focuses on getting a reproducible dev environment and running both frontend and backend concurrently.
 
 ---
 
@@ -114,7 +99,7 @@ This requires Dockerfiles for frontend and backend; if these are not present yet
 
 ## Manual start (what the launchers do)
 
-If you prefer to run the frontend and backend in separate terminals, do the steps below.
+To run the frontend and backend in separate terminals, do the steps below.
 
 ### Frontend (React + Vite)
 
