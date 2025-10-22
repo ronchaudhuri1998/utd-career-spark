@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { generatePlan, type StreamEvent } from "@/lib/api";
-import { useUserData } from "@/contexts/UserDataContext";
+import { useUserData, type AgentOutputs } from "@/contexts/UserDataContext";
 
 export interface AgentProgress {
   agent: string;
@@ -60,51 +60,72 @@ export const useSSE = (): UseSSEReturn => {
   const progressRef = useRef<AgentProgress[]>([]);
   const { setAgentOutputs, agentOutputs } = useUserData();
 
-  // Keep ref in sync with current agentOutputs
-  useEffect(() => {
-    // This will be used for dashboard updates
-  }, [agentOutputs]);
-
   // Function to update dashboard data when specific agents complete
   const updateDashboardOnAgentComplete = useCallback(
     (agent: string, output: string) => {
-      console.log(`🎯 Agent ${agent} completed, updating dashboard data`);
+      console.log(`🎯 Agent ${agent} completed, updating dashboard data`, {
+        agent,
+        outputLength: output.length,
+        outputPreview:
+          output.substring(0, 100) + (output.length > 100 ? "..." : ""),
+      });
 
-      const currentOutputs = agentOutputs || {
-        finalPlan: "",
-        jobMarket: "",
-        coursePlan: "",
-        projectRecommendations: "",
-        trace: [],
-        agentcore: {
-          available: false,
-          status: "AgentCore session not started yet.",
-          memory_id: undefined,
-          memory_name: undefined,
-        },
-      };
-      const updatedOutputs = { ...currentOutputs };
+      // Use functional state update to get the latest state
+      setAgentOutputs((prevOutputs: AgentOutputs) => {
+        console.log(`🔍 Current state before update for ${agent}:`, {
+          jobMarketLength: prevOutputs.jobMarket.length,
+          coursePlanLength: prevOutputs.coursePlan.length,
+          projectRecommendationsLength:
+            prevOutputs.projectRecommendations.length,
+          finalPlanLength: prevOutputs.finalPlan.length,
+        });
 
-      switch (agent) {
-        case "JobMarketAgent":
-          updatedOutputs.jobMarket = output;
-          break;
-        case "CourseCatalogAgent":
-          updatedOutputs.coursePlan = output;
-          break;
-        case "ProjectAdvisorAgent":
-          updatedOutputs.projectRecommendations = output;
-          break;
-        case "CareerPlannerAgent":
-          updatedOutputs.finalPlan = output;
-          break;
-        default:
-          console.log(`Unknown agent: ${agent}, skipping dashboard update`);
-      }
+        const updatedOutputs = { ...prevOutputs };
 
-      setAgentOutputs(updatedOutputs);
+        switch (agent) {
+          case "JobMarketAgent":
+            updatedOutputs.jobMarket = output;
+            console.log(
+              `✅ Updated JobMarketAgent output in state (${output.length} chars)`
+            );
+            break;
+          case "CourseCatalogAgent":
+            updatedOutputs.coursePlan = output;
+            console.log(
+              `✅ Updated CourseCatalogAgent output in state (${output.length} chars)`
+            );
+            break;
+          case "ProjectAdvisorAgent":
+            updatedOutputs.projectRecommendations = output;
+            console.log(
+              `✅ Updated ProjectAdvisorAgent output in state (${output.length} chars)`
+            );
+            break;
+          case "CareerPlannerAgent":
+            updatedOutputs.finalPlan = output;
+            console.log(
+              `✅ Updated CareerPlannerAgent output in state (${output.length} chars)`
+            );
+            break;
+          default:
+            console.log(
+              `⚠️ Unknown agent: ${agent}, skipping dashboard update`
+            );
+            return prevOutputs; // Return unchanged state for unknown agents
+        }
+
+        console.log(`📦 State update applied for ${agent}:`, {
+          jobMarketLength: updatedOutputs.jobMarket.length,
+          coursePlanLength: updatedOutputs.coursePlan.length,
+          projectRecommendationsLength:
+            updatedOutputs.projectRecommendations.length,
+          finalPlanLength: updatedOutputs.finalPlan.length,
+        });
+
+        return updatedOutputs;
+      });
     },
-    [setAgentOutputs, agentOutputs]
+    [setAgentOutputs]
   );
 
   const startPlan = useCallback(
@@ -198,6 +219,15 @@ export const useSSE = (): UseSSEReturn => {
                   textPreview: collaboratorText.substring(0, 100) + "...",
                   fullText: collaboratorText,
                 });
+
+                // Update dashboard data immediately with collaborator response
+                console.log(
+                  `🔄 Calling updateDashboardOnAgentComplete for ${agent}...`
+                );
+                updateDashboardOnAgentComplete(agent, collaboratorText);
+                console.log(
+                  `✅ updateDashboardOnAgentComplete called for ${agent}`
+                );
 
                 // Add collaborator response to the progress data so useChatMessages can handle it
                 const collaboratorProgress: AgentProgress = {

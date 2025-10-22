@@ -103,7 +103,9 @@ interface UserDataContextType {
     loading: boolean
   ) => void;
   agentOutputs: AgentOutputs;
-  setAgentOutputs: (outputs: AgentOutputs) => void;
+  setAgentOutputs: (
+    outputs: AgentOutputs | ((prev: AgentOutputs) => AgentOutputs)
+  ) => void;
   sessionId: string;
   setSessionId: (id: string) => void;
   runAgentWorkflow: (
@@ -210,9 +212,19 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(STORAGE_OUTPUTS_KEY, JSON.stringify(agentOutputs));
+        const outputsToSave = JSON.stringify(agentOutputs);
+        localStorage.setItem(STORAGE_OUTPUTS_KEY, outputsToSave);
+        console.log("💾 Agent outputs saved to localStorage:", {
+          jobMarketLength: agentOutputs.jobMarket.length,
+          coursePlanLength: agentOutputs.coursePlan.length,
+          projectRecommendationsLength:
+            agentOutputs.projectRecommendations.length,
+          finalPlanLength: agentOutputs.finalPlan.length,
+          storageKey: STORAGE_OUTPUTS_KEY,
+          savedBytes: outputsToSave.length,
+        });
       } catch (error) {
-        console.error("Error saving agent outputs:", error);
+        console.error("❌ Error saving agent outputs to localStorage:", error);
       }
     }
   }, [agentOutputs, isLoading]);
