@@ -23,6 +23,11 @@ interface TraceData {
     agent: string;
     output: string;
   };
+  tool_calls?: Array<{
+    type: string;
+    name: string;
+    result: string;
+  }>;
 }
 
 export interface PlanComplete {
@@ -201,28 +206,70 @@ export const useSSE = (): UseSSEReturn => {
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent || "Supervisor";
 
-                setAgentCards((prev) => {
-                  const newMap = new Map(prev);
-                  const existing = newMap.get(agentName);
-                  if (existing) {
-                    newMap.set(agentName, {
-                      ...existing,
-                      reasoningItems: [
-                        ...existing.reasoningItems,
-                        data.reasoning!,
-                      ],
-                    });
-                  } else {
-                    newMap.set(agentName, {
-                      agent: agentName,
-                      status: "working",
-                      reasoningItems: [data.reasoning!],
-                      output: null,
-                      startTime: Date.now(),
-                    });
-                  }
-                  return newMap;
-                });
+                // Only create agent cards for collaborators, not for supervisor
+                if (agentName !== "Supervisor") {
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(agentName);
+                    if (existing) {
+                      newMap.set(agentName, {
+                        ...existing,
+                        reasoningItems: [
+                          ...existing.reasoningItems,
+                          data.reasoning!,
+                        ],
+                      });
+                    } else {
+                      newMap.set(agentName, {
+                        agent: agentName,
+                        status: "working",
+                        reasoningItems: [data.reasoning!],
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+                    return newMap;
+                  });
+                }
+              }
+
+              // Handle tool calls - integrate them into reasoning flow
+              if (data.tool_calls && data.tool_calls.length > 0) {
+                const agentName = data.agent?.includes("Collaborator:")
+                  ? data.agent.replace("Collaborator: ", "")
+                  : data.agent || "Supervisor";
+
+                // Only create agent cards for collaborators, not for supervisor
+                if (agentName !== "Supervisor") {
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(agentName);
+
+                    // Add each tool call as a reasoning item to maintain chronological order
+                    const toolReasoningItems = data.tool_calls!.map(
+                      (tool) => `🔧 ${tool.result}`
+                    );
+
+                    if (existing) {
+                      newMap.set(agentName, {
+                        ...existing,
+                        reasoningItems: [
+                          ...existing.reasoningItems,
+                          ...toolReasoningItems,
+                        ],
+                      });
+                    } else {
+                      newMap.set(agentName, {
+                        agent: agentName,
+                        status: "working",
+                        reasoningItems: toolReasoningItems,
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+                    return newMap;
+                  });
+                }
               }
 
               // Handle basic agent status updates (what the backend actually sends)
@@ -234,65 +281,52 @@ export const useSSE = (): UseSSEReturn => {
                 const agentName = data.agent.includes("Collaborator:")
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent;
-                setAgentCards((prev) => {
-                  const newMap = new Map(prev);
-                  const existing = newMap.get(agentName);
 
-                  if (existing) {
-                    // Update existing agent
-                    newMap.set(agentName, {
-                      ...existing,
-                      status:
-                        data.status === "started" || data.status === "progress"
-                          ? "working"
-                          : existing.status,
-                      reasoningItems: data.reasoning
-                        ? [...existing.reasoningItems, data.reasoning]
-                        : existing.reasoningItems,
-                    });
-                  } else {
-                    // Create new agent for any agent with progress status
-                    newMap.set(agentName, {
-                      agent: agentName,
-                      status:
-                        data.status === "started" || data.status === "progress"
-                          ? "working"
-                          : "working",
-                      reasoningItems: data.reasoning
-                        ? [data.reasoning]
-                        : ["Working..."],
-                      output: null,
-                      startTime: Date.now(),
-                    });
-                  }
+                // Only create agent cards for collaborators, not for supervisor
+                if (agentName !== "Supervisor") {
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(agentName);
 
-                  return newMap;
-                });
+                    if (existing) {
+                      // Update existing agent
+                      newMap.set(agentName, {
+                        ...existing,
+                        status:
+                          data.status === "started" ||
+                          data.status === "progress"
+                            ? "working"
+                            : existing.status,
+                        reasoningItems: data.reasoning
+                          ? [...existing.reasoningItems, data.reasoning]
+                          : existing.reasoningItems,
+                      });
+                    } else {
+                      // Create new agent for any agent with progress status
+                      newMap.set(agentName, {
+                        agent: agentName,
+                        status:
+                          data.status === "started" ||
+                          data.status === "progress"
+                            ? "working"
+                            : "working",
+                        reasoningItems: data.reasoning
+                          ? [data.reasoning]
+                          : ["Working..."],
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+
+                    return newMap;
+                  });
+                }
               }
             } else if (event.type === "done") {
               setIsRunning(false);
 
-              // Mark Supervisor as completed
-              setAgentCards((prev) => {
-                const newMap = new Map(prev);
-                const supervisor = newMap.get("Supervisor");
-                if (supervisor) {
-                  newMap.set("Supervisor", {
-                    ...supervisor,
-                    status: "completed",
-                  });
-                } else {
-                  // Create Supervisor card if it doesn't exist (in case no reasoning was sent)
-                  newMap.set("Supervisor", {
-                    agent: "Supervisor",
-                    status: "completed",
-                    reasoningItems: ["Plan generation completed"],
-                    output: null,
-                    startTime: Date.now(),
-                  });
-                }
-                return newMap;
-              });
+              // Don't create a Supervisor agent card - the final output should appear as regular message
+              // through responseText. Only mark existing agent cards as completed if they exist.
 
               // Create a mock PlanComplete result
               setResult({

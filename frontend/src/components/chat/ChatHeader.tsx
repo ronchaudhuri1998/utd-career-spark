@@ -1,4 +1,4 @@
-import { MessageCircle, Minus } from "lucide-react";
+import { MessageCircle, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +7,14 @@ interface ChatHeaderProps {
   isConnected: boolean;
   isMinimized: boolean;
   onToggleMinimize: () => void;
+  onClearChat?: () => void;
 }
 
 const ChatHeader = ({
   isConnected,
   isMinimized,
   onToggleMinimize,
+  onClearChat,
 }: ChatHeaderProps) => {
   return (
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b border-border/50">
@@ -25,6 +27,16 @@ const ChatHeader = ({
           </Badge>
         )}
       </CardTitle>
+      {onClearChat && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearChat}
+          className="text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      )}
     </CardHeader>
   );
 };

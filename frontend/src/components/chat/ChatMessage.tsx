@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 
 interface Message {
-  id: number;
+  id: string | number;
   text: string;
   isUser: boolean;
   meta?: {

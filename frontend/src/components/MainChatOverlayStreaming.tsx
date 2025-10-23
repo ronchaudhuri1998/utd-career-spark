@@ -25,12 +25,13 @@ const MainChatOverlayStreaming = ({
     clearProgress,
   } = useSSEContext();
 
-  const { chatHistory, addUserMessage, addErrorMessage } = useChatMessages({
-    agentCards,
-    result,
-    error,
-    responseText,
-  });
+  const { chatHistory, addUserMessage, addErrorMessage, clearHistory } =
+    useChatMessages({
+      agentCards,
+      result,
+      error,
+      responseText,
+    });
 
   const [chatMessage, setChatMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +45,9 @@ const MainChatOverlayStreaming = ({
     addUserMessage(trimmed);
     setChatMessage("");
     setIsSubmitting(true);
-    clearProgress();
+
+    // Don't clear progress - preserve chat history
+    // clearProgress();
 
     try {
       startPlan(trimmed, sessionId);
@@ -64,6 +67,7 @@ const MainChatOverlayStreaming = ({
           isConnected={isConnected}
           isMinimized={false}
           onToggleMinimize={() => {}}
+          onClearChat={clearHistory}
         />
         <CardContent className="flex flex-col flex-1 min-h-0 p-0">
           <div className="flex-1 overflow-hidden min-h-0">

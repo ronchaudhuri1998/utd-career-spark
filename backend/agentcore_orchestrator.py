@@ -110,6 +110,81 @@ class AgentCoreOrchestrator:
                     }
                     result["status"] = "completed"  # Collaborator response received
 
+                # Tool/Action Group invocations
+                elif obs.get("type") == "ACTION_GROUP":
+                    # Debug: log the full observation structure
+                    logger.info(f"ACTION_GROUP observation: {obs}")
+
+                    # AWS Bedrock uses actionGroupInvocationOutput (not actionGroupInvocation)
+                    action_inv = obs.get("actionGroupInvocationOutput", {})
+                    result["tool_calls"] = result.get("tool_calls", [])
+
+                    # The action group name is not provided in the observation structure
+                    # We can try to infer it from the output content or use a generic name
+                    output_text = action_inv.get("text", "")
+
+                    # Try to infer tool type from output content
+                    if "job" in output_text.lower() or "hiring" in output_text.lower():
+                        display_name = "Job Market Tools"
+                    elif (
+                        "course" in output_text.lower() or "cs " in output_text.lower()
+                    ):
+                        display_name = "Course Catalog Tools"
+                    elif (
+                        "project" in output_text.lower()
+                        or "github" in output_text.lower()
+                    ):
+                        display_name = "Project Tools"
+                    elif (
+                        "nebula" in output_text.lower()
+                        or "professor" in output_text.lower()
+                    ):
+                        display_name = "Nebula API Tools"
+                    else:
+                        display_name = "Lambda Tool"
+
+                    result["tool_calls"].append(
+                        {
+                            "type": "action_group",
+                            "name": display_name,
+                            "result": f"Calling {display_name}",
+                        }
+                    )
+
+                # Knowledge Base lookups
+                elif obs.get("type") == "KNOWLEDGE_BASE":
+                    # Debug: log the full observation structure
+                    logger.info(f"KNOWLEDGE_BASE observation: {obs}")
+
+                    kb_output = obs.get("knowledgeBaseLookupOutput", {})
+                    result["tool_calls"] = result.get("tool_calls", [])
+
+                    # Extract knowledge base name if available
+                    raw_kb_name = (
+                        kb_output.get("knowledgeBaseName")
+                        or kb_output.get("knowledgeBaseId")
+                        or "knowledge_base"
+                    )
+
+                    # Map knowledge base names to more user-friendly display names
+                    kb_display_names = {
+                        "knowledge_base": "Knowledge Base",
+                        "course_catalog": "Course Catalog",
+                        "academic_database": "Academic Database",
+                    }
+
+                    display_name = kb_display_names.get(
+                        raw_kb_name, raw_kb_name.replace("_", " ").title()
+                    )
+
+                    result["tool_calls"].append(
+                        {
+                            "type": "knowledge_base",
+                            "name": display_name,
+                            "result": f"Calling {display_name}",
+                        }
+                    )
+
         return result
 
     async def invoke_supervisor_stream(
