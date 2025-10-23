@@ -51,15 +51,18 @@ Pick the section that matches your platform and preference. These commands assum
 
 ### Option 1 — Windows (PowerShell) — recommended for Windows devs
 
-Use the PowerShell launcher which installs dependencies, ensures backend venv, starts backend as a job and opens the frontend in a browser.
-
-1. Allow script execution (one-time):
+1. Open the PowerShell launcher and navigate to the repository using cd
+   
+```powershell
+cd Path/Your/File
+```
+2. Allow script execution (one-time):
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-2. Run the unified launcher:
+3. Run the unified launcher:
 
 ```powershell
 .\start_all.ps1
