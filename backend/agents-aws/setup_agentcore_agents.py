@@ -71,7 +71,12 @@ def delete_all_existing_agents():
 
 
 def create_and_prepare_agent(
-    name, instruction, is_supervisor=False, with_tools=False, skip_prepare=False
+    name,
+    instruction,
+    is_supervisor=False,
+    with_tools=False,
+    tool_type="job",
+    skip_prepare=False,
 ):
     """Create agent, optionally prepare it, and create alias"""
 
@@ -108,35 +113,131 @@ def create_and_prepare_agent(
 
     # 2. Add action groups if needed
     if with_tools:
-        lambda_arn = os.getenv("LAMBDA_JOB_MARKET_TOOLS_ARN")
-        if not lambda_arn:
-            print(
-                f"  ⚠️  Warning: LAMBDA_JOB_MARKET_TOOLS_ARN not found, skipping tools"
-            )
-        else:
-            control_client.create_agent_action_group(
-                agentId=agent_id,
-                agentVersion="DRAFT",
-                actionGroupName="job_market_tools",
-                actionGroupExecutor={
-                    "lambda": lambda_arn
-                },  # Use Lambda instead of RETURN_CONTROL
-                functionSchema={
-                    "functions": [
-                        {
-                            "name": "scrape_hackernews_jobs",
-                            "description": "Scrapes current job postings from Hacker News hiring board. Returns list of job titles and companies currently hiring.",
-                            "parameters": {},
-                        },
-                        {
-                            "name": "scrape_itjobswatch_skills",
-                            "description": "Fetches trending tech skills with salary data from IT Jobs Watch. Returns top skills with market demand information.",
-                            "parameters": {},
-                        },
-                    ]
-                },
-            )
-            print(f"  ✓ Added Lambda action groups to {name}")
+        if tool_type == "job":
+            lambda_arn = os.getenv("LAMBDA_JOB_MARKET_TOOLS_ARN")
+            if not lambda_arn:
+                print(
+                    f"  ⚠️  Warning: LAMBDA_JOB_MARKET_TOOLS_ARN not found, skipping tools"
+                )
+            else:
+                control_client.create_agent_action_group(
+                    agentId=agent_id,
+                    agentVersion="DRAFT",
+                    actionGroupName="job_market_tools",
+                    actionGroupExecutor={
+                        "lambda": lambda_arn
+                    },  # Use Lambda instead of RETURN_CONTROL
+                    functionSchema={
+                        "functions": [
+                            {
+                                "name": "scrape_hackernews_jobs",
+                                "description": "Scrapes current job postings from Hacker News hiring board. Returns list of job titles and companies currently hiring.",
+                                "parameters": {},
+                            },
+                            {
+                                "name": "scrape_itjobswatch_skills",
+                                "description": "Fetches trending tech skills with salary data from IT Jobs Watch. Returns top skills with market demand information.",
+                                "parameters": {},
+                            },
+                        ]
+                    },
+                )
+                print(f"  ✓ Added job market tools to {name}")
+
+        elif tool_type == "project":
+            lambda_arn = os.getenv("LAMBDA_PROJECT_TOOLS_ARN")
+            if not lambda_arn:
+                print(
+                    f"  ⚠️  Warning: LAMBDA_PROJECT_TOOLS_ARN not found, skipping tools"
+                )
+            else:
+                control_client.create_agent_action_group(
+                    agentId=agent_id,
+                    agentVersion="DRAFT",
+                    actionGroupName="project_tools",
+                    actionGroupExecutor={"lambda": lambda_arn},
+                    functionSchema={
+                        "functions": [
+                            {
+                                "name": "search_github_projects",
+                                "description": "Search GitHub repositories for project inspiration. Returns trending repos with stars, language, and topics.",
+                                "parameters": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Search query for repositories",
+                                        "required": True,
+                                    },
+                                    "language": {
+                                        "type": "string",
+                                        "description": "Programming language filter (optional)",
+                                        "required": False,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "search_arxiv_papers",
+                                "description": "Search ArXiv for research papers that could inspire academic projects. Returns paper titles, abstracts, and authors.",
+                                "parameters": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Search query for papers",
+                                        "required": True,
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "description": "ArXiv category filter (optional)",
+                                        "required": False,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "search_huggingface_models",
+                                "description": "Search Hugging Face for ML models and datasets. Returns model names, tasks, and download counts.",
+                                "parameters": {
+                                    "task": {
+                                        "type": "string",
+                                        "description": "ML task filter (optional)",
+                                        "required": False,
+                                    },
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Search query for models/datasets",
+                                        "required": False,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "search_kaggle_datasets",
+                                "description": "Search Kaggle for datasets and competitions. Returns dataset names, sizes, and download counts.",
+                                "parameters": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Search query for datasets/competitions",
+                                        "required": True,
+                                    }
+                                },
+                            },
+                            {
+                                "name": "search_project_inspiration",
+                                "description": "Multi-source search across GitHub, ArXiv, Hugging Face, and Kaggle for comprehensive project inspiration.",
+                                "parameters": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "Search query for project inspiration",
+                                        "required": True,
+                                    },
+                                    "sources": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "List of sources to search (github, arxiv, huggingface, kaggle)",
+                                        "required": False,
+                                    },
+                                },
+                            },
+                        ]
+                    },
+                )
+                print(f"  ✓ Added project tools to {name}")
 
     # 3. Prepare agent (skip for supervisor until collaborators are added)
     if not skip_prepare:
@@ -182,6 +283,7 @@ def main():
         f"UTD-JobMarket-{TIMESTAMP}",
         job_prompt,
         with_tools=True,
+        tool_type="job",
     )
 
     course_id, course_alias_id, course_alias_arn = create_and_prepare_agent(
@@ -192,6 +294,8 @@ def main():
     project_id, project_alias_id, project_alias_arn = create_and_prepare_agent(
         f"UTD-ProjectAdvisor-{TIMESTAMP}",
         project_prompt,
+        with_tools=True,
+        tool_type="project",
     )
 
     # Create supervisor agent (skip prepare until collaborators are added)

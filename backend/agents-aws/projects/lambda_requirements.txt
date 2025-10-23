@@ -1,0 +1,4 @@
+requests==2.31.0
+beautifulsoup4==4.12.2
+boto3>=1.40.35
+kaggle==1.7.4.5
