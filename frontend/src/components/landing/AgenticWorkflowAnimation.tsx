@@ -28,10 +28,10 @@ export const AgenticWorkflowAnimation = () => {
   ];
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto">
       <svg
         viewBox="0 0 800 550"
-        className="w-full h-auto"
+        className="w-full h-auto scale-110"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
@@ -99,14 +99,14 @@ export const AgenticWorkflowAnimation = () => {
                 <circle
                   cx={agent.x}
                   cy={agent.y}
-                  r="35"
+                  r="50"
                   fill={agent.color}
                   opacity="0.3"
                 >
                   <animate
                     attributeName="r"
-                    from="35"
-                    to="50"
+                    from="50"
+                    to="70"
                     dur="1s"
                     repeatCount="indefinite"
                   />
@@ -124,7 +124,7 @@ export const AgenticWorkflowAnimation = () => {
               <circle
                 cx={agent.x}
                 cy={agent.y}
-                r="30"
+                r="45"
                 fill={agent.color}
                 filter={isActive ? "url(#glow)" : ""}
                 opacity={isActive ? 1 : 0.7}
@@ -140,40 +140,40 @@ export const AgenticWorkflowAnimation = () => {
                 {agent.id === 0 && (
                   // Supervisor icon (crown)
                   <path
-                    d="M-10,-5 L-5,-15 L0,-8 L5,-15 L10,-5 L10,5 L-10,5 Z"
+                    d="M-15,-8 L-8,-22 L0,-12 L8,-22 L15,-8 L15,8 L-15,8 Z"
                     fill="white"
                   />
                 )}
                 {agent.id === 1 && (
                   // Course icon (book)
                   <path
-                    d="M-8,-10 L8,-10 L8,10 L-8,10 Z M-6,-8 L6,-8 M-6,-2 L6,-2 M-6,4 L6,4"
+                    d="M-12,-15 L12,-15 L12,15 L-12,15 Z M-9,-12 L9,-12 M-9,-3 L9,-3 M-9,6 L9,6"
                     stroke="white"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     fill="none"
                   />
                 )}
                 {agent.id === 2 && (
                   // Job Market icon (briefcase)
                   <path
-                    d="M-10,-5 L10,-5 L10,10 L-10,10 Z M-5,-5 L-5,-10 L5,-10 L5,-5 M-10,0 L10,0"
+                    d="M-15,-8 L15,-8 L15,15 L-15,15 Z M-8,-8 L-8,-15 L8,-15 L8,-8 M-15,0 L15,0"
                     stroke="white"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     fill="none"
                   />
                 )}
                 {agent.id === 3 && (
                   // Project icon (lightbulb)
-                  <g stroke="white" strokeWidth="2" fill="none">
-                    <circle cx="0" cy="-3" r="7" />
-                    <path d="M-3,5 L3,5 M-2,8 L2,8" />
+                  <g stroke="white" strokeWidth="3" fill="none">
+                    <circle cx="0" cy="-5" r="10" />
+                    <path d="M-5,8 L5,8 M-3,12 L3,12" />
                   </g>
                 )}
                 {agent.id === 4 && (
                   // User icon
                   <g>
-                    <circle cx="0" cy="-5" r="5" fill="white" />
-                    <path d="M-10,10 Q-10,0 0,0 Q10,0 10,10" fill="white" />
+                    <circle cx="0" cy="-8" r="8" fill="white" />
+                    <path d="M-15,15 Q-15,0 0,0 Q15,0 15,15" fill="white" />
                   </g>
                 )}
               </g>
@@ -181,9 +181,9 @@ export const AgenticWorkflowAnimation = () => {
               {/* Label */}
               <text
                 x={agent.x}
-                y={agent.y + 55}
+                y={agent.y + 70}
                 textAnchor="middle"
-                className="text-sm font-semibold"
+                className="text-base font-semibold"
                 fill={isActive ? agent.color : "#9CA3AF"}
                 style={{
                   transition: "all 0.5s ease",

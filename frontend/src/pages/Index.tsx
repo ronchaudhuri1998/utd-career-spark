@@ -31,7 +31,12 @@ const Index = () => {
       {/* Hero Section */}
       <div className="container mx-auto px-4 pt-20 pb-16">
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
-          {/* Left side - Text content */}
+          {/* Left side - Animation */}
+          <div className="flex items-center justify-center">
+            <AgenticWorkflowAnimation />
+          </div>
+
+          {/* Right side - Text content */}
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4 w-fit">
@@ -79,11 +84,6 @@ const Index = () => {
                 personalized career guidance
               </p>
             </div>
-          </div>
-
-          {/* Right side - Animation */}
-          <div className="flex items-center justify-center">
-            <AgenticWorkflowAnimation />
           </div>
         </div>
 
