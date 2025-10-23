@@ -34,7 +34,7 @@ const ChatInput = ({
           placeholder="Ask about your career goals..."
           onKeyDown={handleKeyDown}
           disabled={isSubmitting || !isConnected || disabled}
-          className="flex-1 h-10"
+          className="flex-1 h-10 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary"
         />
         <Button
           onClick={onSend}
