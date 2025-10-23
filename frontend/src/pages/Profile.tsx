@@ -234,7 +234,6 @@ const Profile = () => {
         onSave={handleSave}
         onCancel={handleCancel}
         onBack={handleBack}
-        onDebug={handleDebug}
       />
 
       <main className="container mx-auto px-6 py-8">

@@ -16,6 +16,63 @@
 
 ---
 
+## 🐳 Quick Docker Setup (For Judges)
+
+**One-command setup for evaluation:**
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd utd-career-spark
+
+# 2. Copy environment variables
+cp .env.example .env
+# Edit .env with your AWS credentials
+
+# 3. Run with Docker Compose
+docker-compose up --build
+
+# 4. Access the application
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8000
+```
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+- AWS credentials (Access Key ID, Secret Key)
+- AWS Bedrock access in us-east-1 region
+
+**Environment Variables Required:**
+```env
+# AWS Credentials (Required)
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+
+# AgentCore Configuration (Required)
+USE_AGENTCORE=1
+AGENTCORE_EXECUTION_ROLE_ARN=arn:aws:iam::YOUR_ACCOUNT:role/AgentCoreMemoryRole
+AGENTCORE_MEMORY_ID=your_memory_id
+
+# Agent IDs (Required)
+AGENTCORE_PLANNER_AGENT_ID=your_planner_agent_id
+AGENTCORE_PLANNER_ALIAS_ID=your_planner_alias_id
+# ... (see .env.example for full list)
+
+# Lambda ARNs (Required)
+LAMBDA_JOB_MARKET_TOOLS_ARN=arn:aws:lambda:us-east-1:YOUR_ACCOUNT:function:UTD-JobMarketTools
+# ... (see .env.example for full list)
+
+# API Keys (Required)
+KAGGLE_USERNAME=your_kaggle_username
+KAGGLE_KEY=your_kaggle_key
+NEBULA_API_KEY=your_nebula_api_key
+```
+
+**Note:** The application requires AWS Bedrock AgentCore setup. For evaluation purposes, you can use the pre-configured environment or set up your own AWS resources following the deployment guide below.
+
+---
+
 ## 🏗️ Architecture Overview
 
 ```
@@ -147,9 +204,9 @@ npm run dev
 cd backend/agents-aws
 
 # 1. Deploy Lambda functions
-python job/deploy_lambda.py
-python nebula/deploy_lambda.py
-python projects/deploy_lambda.py
+python deploy_all_lambdas.py
+
+# 1.5 Update .env with lambda ARNs from output
 
 # 2. Create all agents
 python setup_agentcore_agents.py
@@ -160,7 +217,42 @@ python setup_agentcore_agents.py
 python test_agentcore_workflow.py
 ```
 
+**For Local Docker Testing:**
+
+```bash
+# Build and test containers locally
+./build-docker.sh
+./test-docker-local.sh
+
+# Or run full application with docker-compose
+docker-compose up --build
+```
+
+**For AWS App Runner Deployment (Production):**
+
+```bash
+# One-command deployment to AWS App Runner
+./deploy-apprunner.sh
+```
+
 **Prerequisites:** AWS credentials, Python 3.11+, IAM permissions for Bedrock + Lambda
+
+---
+
+## 🚀 Deployment Options
+
+| Option | Use Case | Complexity | Cost | Auto-scaling |
+|--------|----------|------------|------|--------------|
+| **Local Development** | Development & testing | Low | Free | No |
+| **AWS Lambda + AgentCore** | Serverless production | Medium | Pay-per-use | Yes |
+| **AWS App Runner** | Containerized production | Medium | Fixed monthly | Yes |
+| **AWS Amplify** | Static frontend hosting | Low | $1-5/month | Yes |
+
+**Choose your deployment:**
+- **Quick Start**: Local development for testing
+- **Serverless**: AWS Lambda + AgentCore for serverless architecture
+- **Production**: AWS App Runner for containerized deployment with auto-scaling
+- **Cost-Effective**: AWS Amplify for static frontend hosting (~$1-5/month)
 
 ---
 
@@ -237,6 +329,9 @@ utd-career-spark/
 - **Frontend Setup**: [frontend/README.md](frontend/README.md)
 - **AgentCore Architecture**: [backend/agents-aws/AGENTCORE_ARCHITECTURE.md](backend/agents-aws/AGENTCORE_ARCHITECTURE.md)
 - **Lambda Deployment**: [backend/agents-aws/LAMBDA_DEPLOYMENT.md](backend/agents-aws/LAMBDA_DEPLOYMENT.md)
+- **AWS App Runner Deployment**: [AWS_APP_RUNNER_DEPLOYMENT.md](AWS_APP_RUNNER_DEPLOYMENT.md)
+- **AWS Amplify Deployment**: [AWS_AMPLIFY_DEPLOYMENT.md](AWS_AMPLIFY_DEPLOYMENT.md)
+- **Local Docker Testing**: [LOCAL_DOCKER_TESTING.md](LOCAL_DOCKER_TESTING.md)
 
 ---
 
@@ -244,3 +339,6 @@ utd-career-spark/
 
 MIT License - Built for educational purposes as part of AWS Bedrock AgentCore Hackathon 2025.
 
+deploying to apprunner guide:
+1. brew install awscli
+export AWS_ACCESS_KEY_ID=AKIAYDBYLORQM5NJVLUL && export AWS_SECRET_ACCESS_KEY=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 && export AWS_REGION=us-east-1 && ./recreate-services.sh

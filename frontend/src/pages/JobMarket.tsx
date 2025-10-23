@@ -11,7 +11,7 @@ import { InsightCards } from "@/components/job-market/InsightCards";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { mockJobMarketData } from "@/data/mockJobMarketData";
 import { toast } from "sonner";
-import DashboardEmbeddedChat from "@/components/chat/DashboardEmbeddedChat";
+import ChatPopup from "@/components/chat/ChatPopup";
 
 const JobMarket = () => {
   const navigate = useNavigate();
@@ -88,8 +88,16 @@ const JobMarket = () => {
             </CardContent>
           </Card>
         ) : parsedData ? (
-          <div className="grid lg:grid-cols-[1fr_450px] gap-6 w-full">
-            {/* Left: Dashboard Content */}
+          <div className="space-y-6">
+            {/* Chat Button */}
+            <div className="flex justify-end">
+              <ChatPopup
+                title="Job Market Assistant"
+                dashboardType="jobmarket"
+              />
+            </div>
+
+            {/* Dashboard Content */}
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Job Listings */}
               <div>
@@ -100,14 +108,6 @@ const JobMarket = () => {
               <div>
                 <InsightCards insights={parsedData.insights} />
               </div>
-            </div>
-
-            {/* Right: Embedded Chat */}
-            <div>
-              <DashboardEmbeddedChat
-                title="Job Market Assistant"
-                dashboardType="jobmarket"
-              />
             </div>
           </div>
         ) : (

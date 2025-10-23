@@ -16,7 +16,7 @@ import { ProjectCards } from "@/components/projects/ProjectCards";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { mockProjectData } from "@/data/mockProjectData";
 import { toast } from "sonner";
-import DashboardEmbeddedChat from "@/components/chat/DashboardEmbeddedChat";
+import ChatPopup from "@/components/chat/ChatPopup";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -93,8 +93,13 @@ const Projects = () => {
             </CardContent>
           </Card>
         ) : parsedData ? (
-          <div className="grid lg:grid-cols-[1fr_450px] gap-6 w-full">
-            {/* Left: Dashboard Content */}
+          <div className="space-y-6">
+            {/* Chat Button */}
+            <div className="flex justify-end">
+              <ChatPopup title="Project Advisor" dashboardType="projects" />
+            </div>
+
+            {/* Dashboard Content */}
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -123,14 +128,6 @@ const Projects = () => {
                   </p>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Right: Embedded Chat */}
-            <div>
-              <DashboardEmbeddedChat
-                title="Project Advisor"
-                dashboardType="projects"
-              />
             </div>
           </div>
         ) : (

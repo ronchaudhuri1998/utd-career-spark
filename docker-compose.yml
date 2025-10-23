@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - USE_AGENTCORE=1
+      - AWS_REGION=us-east-1
+      # Add your AgentCore environment variables here
+      - AGENTCORE_EXECUTION_ROLE_ARN=${AGENTCORE_EXECUTION_ROLE_ARN}
+      - AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID}
+      - AGENTCORE_PLANNER_AGENT_ID=${AGENTCORE_PLANNER_AGENT_ID}
+      - AGENTCORE_PLANNER_ALIAS_ID=${AGENTCORE_PLANNER_ALIAS_ID}
+      # Lambda ARNs
+      - LAMBDA_JOB_MARKET_TOOLS_ARN=${LAMBDA_JOB_MARKET_TOOLS_ARN}
+      - LAMBDA_PROJECT_TOOLS_ARN=${LAMBDA_PROJECT_TOOLS_ARN}
+      - LAMBDA_NEBULA_API_TOOLS_ARN=${LAMBDA_NEBULA_API_TOOLS_ARN}
+      - LAMBDA_VALIDATE_JOBMARKET_ARN=${LAMBDA_VALIDATE_JOBMARKET_ARN}
+      - LAMBDA_VALIDATE_COURSE_ARN=${LAMBDA_VALIDATE_COURSE_ARN}
+      - LAMBDA_VALIDATE_PROJECT_ARN=${LAMBDA_VALIDATE_PROJECT_ARN}
+      # API Keys
+      - KAGGLE_USERNAME=${KAGGLE_USERNAME}
+      - KAGGLE_KEY=${KAGGLE_KEY}
+      - NEBULA_API_KEY=${NEBULA_API_KEY}
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  app-network:
+    driver: bridge

@@ -158,6 +158,13 @@ const Dashboard = () => {
     useSSEReturn;
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Auto-trigger onboarding if user hasn't been onboarded
+  useEffect(() => {
+    if (!userData.isOnboarded) {
+      setShowOnboarding(true);
+    }
+  }, [userData.isOnboarded]);
+
   const jobMarketLines = useMemo(
     () => textToList(agentOutputs.jobMarket),
     [agentOutputs.jobMarket]
@@ -204,8 +211,6 @@ const Dashboard = () => {
 
       // TODO: Clear AgentCore session memory when implemented
       // Example: runtime.clear_session(session_id)
-
-      setShowOnboarding(true);
     }
   };
 
