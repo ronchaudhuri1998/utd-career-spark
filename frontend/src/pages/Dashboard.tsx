@@ -16,6 +16,13 @@ import { useUserData } from "@/contexts/UserDataContext";
 import { useSSEContext } from "@/contexts/SSEContext";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 import OnboardingModal from "@/components/OnboardingModal";
+import StatsGrid from "@/components/StatsGrid";
+import {
+  extractJobMarketStats,
+  extractCourseStats,
+  extractProjectStats,
+  type StatItem,
+} from "@/lib/statsParser";
 
 const textToList = (text: string) =>
   text
@@ -30,6 +37,7 @@ const InsightsCard = ({
   title,
   subtitle,
   items,
+  stats,
   emptyMessage,
   navigating,
   loading,
@@ -40,6 +48,7 @@ const InsightsCard = ({
   title: string;
   subtitle: string;
   items: string[];
+  stats?: StatItem[];
   emptyMessage: string;
   navigating: () => void;
   loading: boolean;
@@ -76,10 +85,10 @@ const InsightsCard = ({
           {isAgentRunning ? "Running" : showLoading ? "Refreshing" : "Ready"}
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-3 flex-1 flex flex-col min-h-0">
+      <CardContent className="space-y-1 flex-1 flex flex-col min-h-0 p-4 pt-0">
         <div className="flex-1 min-h-0 overflow-hidden">
           {showLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
                 <div
@@ -97,6 +106,8 @@ const InsightsCard = ({
                   : "Agents are gathering the latest insights..."}
               </p>
             </div>
+          ) : stats && stats.length > 0 ? (
+            <StatsGrid stats={stats} />
           ) : items.length ? (
             <ul className="space-y-2 h-full overflow-y-auto pr-2">
               {items.slice(0, MAX_ITEMS).map((line, idx) => (
@@ -116,7 +127,7 @@ const InsightsCard = ({
         <Button
           onClick={navigating}
           variant="outline"
-          className="justify-start gap-2 text-sm flex-shrink-0"
+          className="justify-start gap-2 text-sm flex-shrink-0 h-8 mt-4"
         >
           View full dashboard
         </Button>
@@ -157,6 +168,22 @@ const Dashboard = () => {
   const finalPlanHighlights = useMemo(
     () => textToList(agentOutputs.finalPlan).slice(0, MAX_ITEMS),
     [agentOutputs.finalPlan]
+  );
+
+  // Parse statistics from agent outputs
+  const jobMarketStats = useMemo(
+    () => extractJobMarketStats(agentOutputs.jobMarket),
+    [agentOutputs.jobMarket]
+  );
+
+  const courseStats = useMemo(
+    () => extractCourseStats(agentOutputs.coursePlan),
+    [agentOutputs.coursePlan]
+  );
+
+  const projectStats = useMemo(
+    () => extractProjectStats(agentOutputs.projectRecommendations),
+    [agentOutputs.projectRecommendations]
   );
 
   const handleClearLocalStorage = () => {
@@ -216,13 +243,14 @@ const Dashboard = () => {
           <div className="flex-1 min-h-[400px] lg:min-h-[600px] lg:max-w-[33.333%] lg:min-w-[300px]">
             <MainChatOverlayStreaming />
           </div>
-          <div className="flex flex-col gap-4 flex-1 min-w-0 lg:max-w-[66.666%]">
-            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
+          <div className="flex flex-col gap-3 flex-1 min-w-0 lg:max-w-[66.666%]">
+            <div className="flex-1 min-h-[200px]">
               <InsightsCard
                 icon={Briefcase}
                 title="Job Market Dashboard"
                 subtitle="Roles, employers, and salary signals powering your plan"
                 items={jobMarketLines}
+                stats={jobMarketStats}
                 emptyMessage="Generate a plan to see current job market highlights."
                 navigating={() => navigate("/job-market")}
                 loading={sectionLoading.jobMarket}
@@ -231,12 +259,13 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
+            <div className="flex-1 min-h-[200px]">
               <InsightsCard
                 icon={BookOpen}
                 title="Course Dashboard"
                 subtitle="Courses and campus resources aligned with your goal"
                 items={coursePlanLines}
+                stats={courseStats}
                 emptyMessage="Generate a plan to unlock your tailored course roadmap."
                 navigating={() => navigate("/academics")}
                 loading={sectionLoading.academics}
@@ -245,12 +274,13 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="flex-1 min-h-[280px] max-h-[33.333%]">
+            <div className="flex-1 min-h-[200px]">
               <InsightsCard
                 icon={Code}
                 title="Projects Dashboard"
                 subtitle="Portfolio projects and skill-building recommendations"
                 items={projectLines}
+                stats={projectStats}
                 emptyMessage="Generate a plan to see personalized project suggestions."
                 navigating={() => navigate("/projects")}
                 loading={sectionLoading.projects}
