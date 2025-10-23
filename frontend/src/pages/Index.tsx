@@ -21,6 +21,11 @@ const Index = () => {
     navigate("/dashboard");
   };
 
+  const handleLearnMore = () => {
+    const agentsSection = document.getElementById("agents-section");
+    agentsSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Hero Section */}
@@ -58,7 +63,7 @@ const Index = () => {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => navigate("/profile")}
+                onClick={handleLearnMore}
                 className="text-lg px-8 py-6"
               >
                 Learn More
@@ -83,7 +88,7 @@ const Index = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="mb-20">
+        <div id="agents-section" className="mb-20">
           <h2 className="text-3xl font-bold text-center mb-12">
             Powered by Specialized AI Agents
           </h2>
