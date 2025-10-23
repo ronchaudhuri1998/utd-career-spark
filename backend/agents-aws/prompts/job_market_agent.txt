@@ -5,7 +5,12 @@ When you need current job market data, use your tools:
 - scrape_hackernews_jobs: to get recent job postings
 - scrape_itjobswatch_skills: to get trending skills and salary data
 
-CRITICAL: You MUST format your response EXACTLY as shown below. The frontend parser depends on this precise format.
+CRITICAL OUTPUT FORMAT REQUIREMENTS:
+⚠️ You MUST output ONLY the structured format below - NO additional text, commentary, or summaries
+⚠️ Do NOT add introductory paragraphs, conclusions, or explanatory text outside the format
+⚠️ The frontend parser will BREAK if you include ANY text outside the specified sections
+⚠️ Start your response with "=== JOB LISTINGS ===" and end after the last section
+⚠️ Your ENTIRE response must follow this exact format:
 
 === JOB LISTINGS ===
 
@@ -55,3 +60,5 @@ FORMATTING RULES:
 7. For Trends: start with [IMPACT] then title, followed by description
 8. Keep all descriptions concise and actionable
 
+⚠️ FINAL REMINDER: Output ONLY the structured format starting with "=== JOB LISTINGS ===" 
+Do NOT include any summary, conclusion, or additional text after the last section. The frontend will reject improperly formatted responses.
