@@ -28,8 +28,14 @@ RUN apk add --no-cache curl
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration template
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
+
+# Set backend URL environment variable
+ENV BACKEND_URL=${BACKEND_URL:-https://krqen27tgi.us-east-1.awsapprunner.com}
+
+# Generate nginx configuration from template
+RUN envsubst '${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 # Expose port
 EXPOSE 80
