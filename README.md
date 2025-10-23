@@ -48,9 +48,15 @@
 ## ✨ Key Features
 
 - **Multi-Agent Collaboration**: Supervisor coordinates 3 specialist agents automatically
-- **Live Job Market Analysis**: Lambda-powered web scraping from HackerNews & IT Jobs Watch
-- **Personalized Course Recommendations**: UTD course catalog aligned with job requirements
-- **Portfolio Project Suggestions**: Tech stack recommendations based on market demand
+- **Custom Lambda Functions**: 6 specialized Lambda functions for real-time data collection
+  - **Job Market Tools**: Live scraping from HackerNews & IT Jobs Watch
+  - **Nebula API Tools**: UTD course catalog with professor data & grade distributions
+  - **Project Tools**: GitHub, ArXiv, Hugging Face, and Kaggle integration
+  - **Validation Tools**: Format validation for job market, course, and project outputs
+  - **Claude Integration**: Direct AI calls for goal classification and intro messages
+- **Live Data Integration**: Real-time job postings, course information, and project inspiration
+- **Personalized Recommendations**: UTD-specific course suggestions with professor insights
+- **Portfolio Development**: Tech stack recommendations based on current market demand
 - **Shared Memory**: Context maintained across all agents for coherent conversations
 
 ---

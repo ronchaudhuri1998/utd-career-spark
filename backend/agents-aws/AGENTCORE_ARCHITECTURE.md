@@ -31,24 +31,44 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 ┌──────────────────┐ ┌──────────────────┐ ┌───────────────────┐
 │ JobMarketAgent   │ │CourseCatalogAgent│ │ProjectAdvisorAgent│
 │                  │ │                  │ │                   │
-│ Tools:           │ │ Knowledge:       │ │ Knowledge:        │
-│ ├─Lambda: HN Jobs│ │ ├─UTD Courses    │ │ ├─Tech Stacks     │
-│ └─Lambda: Skills │ │ └─Degrees        │ │ └─Project Ideas   │
-└──────────┬───────┘ └──────────────────┘ └───────────────────┘
-           │
-           ▼
-┌───────────────────────────────────────────────────────────────┐
-│         AWS Lambda: UTD-JobMarketTools                        │
-│  - scrape_hackernews_jobs()                                   │
-│  - scrape_itjobswatch_skills()                                │
-└───────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌───────────────────────────────────────────────────────────────┐
-│              External Data Sources                            │
-│  - Hacker News Hiring Board                                   │
-│  - IT Jobs Watch                                              │
-└───────────────────────────────────────────────────────────────┘
+│ Tools:           │ │ Tools:           │ │ Tools:            │
+│ ├─Lambda: HN Jobs│ │ ├─Lambda: Courses│ │ ├─Lambda: GitHub  │
+│ └─Lambda: Skills │ │ ├─Lambda: Profs  │ │ ├─Lambda: ArXiv   │
+└──────────┬───────┘ └──────────┬───────┘ └──────────┬────────┘
+           │                    │                    │
+           ▼                    ▼                    ▼
+┌──────────────────┐ ┌──────────────────┐ ┌───────────────────┐
+│ UTD-JobMarketTools│ │ UTD-NebulaAPITools│ │ UTD-ProjectTools │
+│                  │ │                  │ │                   │
+│ Functions:       │ │ Functions:       │ │ Functions:        │
+│ ├─scrape_hackernews_jobs()│ ├─get_course_sections_trends()│ ├─search_github_projects()│
+│ └─scrape_itjobswatch_skills()│ ├─get_professor_sections_trends()│ ├─search_arxiv_papers()│
+│                  │ │ ├─get_course_information()│ ├─search_huggingface_models()│
+│                  │ │ └─get_professor_information()│ ├─search_kaggle_datasets()│
+└──────────┬───────┘ └──────────┬───────┘ └──────────┬────────┘
+           │                    │                    │
+           ▼                    ▼                    ▼
+┌──────────────────┐ ┌──────────────────┐ ┌───────────────────┐
+│ External Sources │ │ External Sources │ │ External Sources  │
+│                  │ │                  │ │                   │
+│ ├─Hacker News    │ │ ├─UTD Nebula API │ │ ├─GitHub API      │
+│ └─IT Jobs Watch  │ │ └─UTD Course DB  │ │ ├─ArXiv API       │
+│                  │ │                  │ │ ├─Hugging Face    │
+│                  │ │                  │ │ └─Kaggle API      │
+└──────────────────┘ └──────────────────┘ └───────────────────┘
+           │                    │                    │
+           ▼                    ▼                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Validation Layer                               │
+│                                                             │
+│ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐│
+│ │UTD-ValidateJobMarket│ │UTD-ValidateCourse│ │UTD-ValidateProject││
+│ │                 │ │                 │ │                 ││
+│ │Functions:       │ │Functions:       │ │Functions:       ││
+│ │├─validate_job_market_format()│ │├─validate_course_format()│ │├─validate_project_format()││
+│ │└─Format validation│ │└─Format validation│ │└─Format validation││
+│ └─────────────────┘ └─────────────────┘ └─────────────────┘│
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -85,21 +105,32 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 - **Role**: Academic advisor
 - **Type**: `COLLABORATOR`
 - **Model**: Claude 3 Haiku
+- **Tools**:
+  - `get_course_sections_trends` (Lambda)
+  - `get_professor_sections_trends` (Lambda)
+  - `get_course_information` (Lambda)
+  - `get_professor_information` (Lambda)
 - **Responsibilities**:
-  - Recommend UTD courses
-  - Suggest degree programs
+  - Recommend UTD courses with grade distributions
+  - Suggest professors based on teaching history
   - Align academics with job market
-  - Provide campus resources
+  - Provide campus resources and course prerequisites
 
 ### 4. ProjectAdvisorAgent (Collaborator)
 
 - **Role**: Portfolio strategist
 - **Type**: `COLLABORATOR`
 - **Model**: Claude 3 Haiku
+- **Tools**:
+  - `search_github_projects` (Lambda)
+  - `search_arxiv_papers` (Lambda)
+  - `search_huggingface_models` (Lambda)
+  - `search_kaggle_datasets` (Lambda)
+  - `search_project_inspiration` (Lambda)
 - **Responsibilities**:
-  - Suggest portfolio projects
-  - Recommend tech stacks
-  - Guide hands-on learning
+  - Suggest portfolio projects from GitHub, ArXiv, Hugging Face, Kaggle
+  - Recommend tech stacks based on current trends
+  - Guide hands-on learning with real-world projects
   - Align projects with job requirements
 
 ---
@@ -108,19 +139,32 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 
 ### Lambda Functions
 
+#### 1. Job Market Tools (`UTD-JobMarketTools`)
 ```python
-# Function: UTD-JobMarketTools
-# Runtime: Python 3.11
-# Timeout: 60 seconds
-# Memory: 512 MB
+# Runtime: Python 3.11, Timeout: 60s, Memory: 512MB
+# Functions: scrape_hackernews_jobs(), scrape_itjobswatch_skills()
+# Data Sources: Hacker News, IT Jobs Watch
+```
 
-def lambda_handler(event, context):
-    function_name = event['function']
+#### 2. Nebula API Tools (`UTD-NebulaAPITools`)
+```python
+# Runtime: Python 3.11, Timeout: 30s, Memory: 256MB
+# Functions: get_course_sections_trends(), get_professor_sections_trends(), etc.
+# Data Sources: UTD Nebula API (courses, professors, grades)
+```
 
-    if function_name == 'scrape_hackernews_jobs':
-        return scrape_jobs()
-    elif function_name == 'scrape_itjobswatch_skills':
-        return scrape_skills()
+#### 3. Project Tools (`UTD-ProjectTools`)
+```python
+# Runtime: Python 3.11, Timeout: 60s, Memory: 512MB
+# Functions: search_github_projects(), search_arxiv_papers(), etc.
+# Data Sources: GitHub, ArXiv, Hugging Face, Kaggle
+```
+
+#### 4. Validation Tools (`UTD-ValidateJobMarket`, `UTD-ValidateCourse`, `UTD-ValidateProject`)
+```python
+# Runtime: Python 3.11, Timeout: 30s, Memory: 256MB
+# Functions: validate_job_market_format(), validate_course_format(), validate_project_format()
+# Purpose: Format validation for agent outputs
 ```
 
 ### Memory Configuration
@@ -182,16 +226,21 @@ control_client.associate_agent_collaborator(
 
 | Agent          | ID         | Alias ID   |
 | -------------- | ---------- | ---------- |
-| CareerPlanner  | T3TCF2QM9X | ESEHZN8RYR |
-| JobMarket      | 61BLYEUNNP | FINFXHFOU0 |
-| CourseCatalog  | 2GB15BFRJI | 1PPB20FIDJ |
-| ProjectAdvisor | 5GGPMCAQSA | NDTAXBXU2L |
+| CareerPlanner  | VEGZEB5SHM | KVBBNAXDPS |
+| JobMarket      | CTFYALQVJP | F2FO2J3U3E |
+| CourseCatalog  | 6AQGP6TGXL | HGMKLX9RRC |
+| ProjectAdvisor | 3RE8BXKK3G | IBQ1Y3VKAE |
 
-### Lambda Function
+### Lambda Functions
 
-- **ARN**: `arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools`
-- **Runtime**: Python 3.11
-- **Dependencies**: requests, beautifulsoup4
+| Function Name | ARN | Runtime | Purpose |
+| ------------- | --- | ------- | ------- |
+| UTD-JobMarketTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools` | Python 3.11 | Web scraping (HN, IT Jobs Watch) |
+| UTD-NebulaAPITools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-NebulaAPITools` | Python 3.11 | UTD course/professor data |
+| UTD-ProjectTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ProjectTools` | Python 3.11 | Project recommendations (GitHub, ArXiv, etc.) |
+| UTD-ValidateJobMarket | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateJobMarket` | Python 3.11 | Job market format validation |
+| UTD-ValidateCourse | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateCourse` | Python 3.11 | Course format validation |
+| UTD-ValidateProject | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateProject` | Python 3.11 | Project format validation |
 
 ### IAM Role
 
@@ -280,18 +329,28 @@ AWS_SECRET_ACCESS_KEY=...
 # IAM
 AGENTCORE_EXECUTION_ROLE_ARN=arn:aws:iam::556316456032:role/AgentCoreMemoryRole
 
-# Lambda
+# Lambda Functions
 LAMBDA_JOB_MARKET_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools
+LAMBDA_NEBULA_API_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-NebulaAPITools
+LAMBDA_PROJECT_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ProjectTools
+LAMBDA_VALIDATE_JOBMARKET_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateJobMarket
+LAMBDA_VALIDATE_COURSE_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateCourse
+LAMBDA_VALIDATE_PROJECT_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateProject
+
+# API Keys
+NEBULA_API_KEY=your_nebula_api_key
+KAGGLE_USERNAME=your_kaggle_username
+KAGGLE_KEY=your_kaggle_key
 
 # Agents
-AGENTCORE_PLANNER_AGENT_ID=T3TCF2QM9X
-AGENTCORE_PLANNER_ALIAS_ID=ESEHZN8RYR
-AGENTCORE_JOB_AGENT_ID=61BLYEUNNP
-AGENTCORE_JOB_ALIAS_ID=FINFXHFOU0
-AGENTCORE_COURSE_AGENT_ID=2GB15BFRJI
-AGENTCORE_COURSE_ALIAS_ID=1PPB20FIDJ
-AGENTCORE_PROJECT_AGENT_ID=5GGPMCAQSA
-AGENTCORE_PROJECT_ALIAS_ID=NDTAXBXU2L
+AGENTCORE_PLANNER_AGENT_ID=VEGZEB5SHM
+AGENTCORE_PLANNER_ALIAS_ID=KVBBNAXDPS
+AGENTCORE_JOB_AGENT_ID=CTFYALQVJP
+AGENTCORE_JOB_ALIAS_ID=F2FO2J3U3E
+AGENTCORE_COURSE_AGENT_ID=6AQGP6TGXL
+AGENTCORE_COURSE_ALIAS_ID=HGMKLX9RRC
+AGENTCORE_PROJECT_AGENT_ID=3RE8BXKK3G
+AGENTCORE_PROJECT_ALIAS_ID=IBQ1Y3VKAE
 ```
 
 ---
@@ -385,7 +444,7 @@ Suggested portfolio projects:
 - [ ] Add knowledge bases for UTD course catalog
 - [ ] Implement RAG for course descriptions
 - [ ] Add guardrails for response quality
-- [ ] Enable streaming responses to UI
+- [ ] Enable full streaming responses to UI
 
 ### Phase 3
 
@@ -395,8 +454,6 @@ Suggested portfolio projects:
 - [ ] Add alumni network insights
 
 ### Phase 4
-
-- [ ] Deploy to AgentCore Runtime (serverless)
 - [ ] Add AgentCore Observability
 - [ ] Implement A/B testing
 - [ ] Scale to 1000+ concurrent users

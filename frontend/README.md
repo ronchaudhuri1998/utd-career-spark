@@ -86,8 +86,23 @@ This project uses [shadcn/ui](https://ui.shadcn.com/) for consistent, accessible
 - **Cards**: Dashboard cards with loading states
 - **Forms**: User profile and onboarding forms
 - **Navigation**: Responsive navigation and routing
-- **Chat Interface**: AI-powered career guidance chat
+- **Chat Interface**: AI-powered career guidance chat with SSE streaming
 - **Skeletons**: Loading state animations
+
+### Chat Components
+
+- **ChatInterface**: Main chat container with streaming support
+- **ChatInput**: Message input with send functionality
+- **ChatMessage**: Individual message display with agent attribution
+- **ChatMessageList**: Message list with auto-scroll
+- **AgentStatus**: Real-time agent activity tracking
+
+### Profile Components
+
+- **ProfileForm**: User profile management
+- **SkillsInput**: Skills selection and management
+- **ExperienceInput**: Work/volunteer experience entry
+- **OnboardingModal**: First-time user setup
 
 ## 🔧 Configuration
 
@@ -126,7 +141,13 @@ TypeScript configuration is in `tsconfig.json`. The project uses strict type che
 
 The app uses React Context for state management:
 - `UserDataContext`: User profile and preferences
+- `SSEContext`: Server-Sent Events streaming state
 - Local state for component-specific data
+
+### Context Providers
+
+- **UserDataContext**: Manages user profile, skills, experience, and preferences
+- **SSEContext**: Handles real-time streaming from AgentCore multi-agent system
 
 ### Routing
 
@@ -140,19 +161,26 @@ Routes are defined in `App.tsx` using React Router:
 ## 🎯 Key Features
 
 ### Dashboard
-- Interactive agent cards
-- Real-time loading states
-- Responsive grid layout
+- Interactive agent cards showing real-time status
+- Multi-agent collaboration visualization
+- Responsive grid layout with loading states
 
 ### Chat Interface
-- AI-powered career guidance
-- Tool call simulation
-- Real-time status updates
+- **SSE Streaming**: Real-time responses from AgentCore multi-agent system
+- **Agent Attribution**: Shows which agent (JobMarket, CourseCatalog, ProjectAdvisor) is responding
+- **Tool Call Tracking**: Visual indicators when Lambda functions are being called
+- **Context Preservation**: Maintains conversation history across agent interactions
 
 ### User Profile
-- Comprehensive onboarding
-- Skills and experience tracking
-- Academic information management
+- Comprehensive onboarding with skills assessment
+- Academic information management (major, year, GPA)
+- Experience tracking (work, volunteer, projects)
+- Career goal setting and tracking
+
+### API Integration
+- **Streaming Responses**: Real-time updates via Server-Sent Events
+- **Multi-Agent Coordination**: Seamless handoff between specialist agents
+- **Data Sources**: Integration with Hacker News, IT Jobs Watch, UTD Nebula API, GitHub, ArXiv, Hugging Face, Kaggle
 
 ## 🐛 Troubleshooting
 

@@ -4,13 +4,15 @@ FastAPI-based backend application for the UTD Career Spark platform, providing R
 
 ## 🛠️ Tech Stack
 
-- **Python 3.8+** - Programming language
+- **Python 3.11+** - Programming language
 - **FastAPI** - Web framework
 - **Uvicorn** - ASGI server
+- **AWS Bedrock AgentCore** - Multi-agent orchestration
+- **Claude 3 Haiku** - AI model for direct calls
+- **Lambda Functions** - Custom tools for data collection
+- **boto3/aioboto3** - AWS SDK
 - **Pydantic** - Data validation
-- **Python-JOSE** - JWT token handling
-- **Passlib** - Password hashing
-- **Python-multipart** - Form data handling
+- **Python-dotenv** - Environment variable management
 
 ## 🚀 Quick Start
 
@@ -65,7 +67,17 @@ backend/
 ├── venv/                   # Virtual environment (not in git)
 ├── main.py                 # FastAPI application entry point
 ├── run.py                  # Development server runner
+├── claude_client.py        # Claude AI integration
+├── agentcore_orchestrator.py # AgentCore multi-agent orchestration
+├── agentcore_runtime.py   # AgentCore runtime utilities
+├── general_chat.py         # General chat functionality
 ├── requirements.txt        # Python dependencies
+├── agents-aws/            # AWS AgentCore implementation
+│   ├── setup_agentcore_agents.py
+│   ├── job/               # Job market Lambda tools
+│   ├── nebula/            # Nebula API Lambda tools
+│   ├── projects/          # Project recommendation Lambda tools
+│   └── validation/        # Format validation Lambda tools
 └── README.md              # This file
 ```
 
@@ -76,32 +88,40 @@ backend/
 Create a `.env` file in the backend directory:
 
 ```env
-# Database
-DATABASE_URL=sqlite:///./career_spark.db
+# AWS Bedrock AgentCore Configuration
+USE_AGENTCORE=1
+AGENTCORE_EXECUTION_ROLE_ARN=arn:aws:iam::556316456032:role/AgentCoreMemoryRole
+AGENTCORE_MEMORY_ID=CareerAdvisorMemory-fN37Om3xKY
 
-# Security
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Agent IDs (use our deployed agents)
+AGENTCORE_PLANNER_AGENT_ID=VEGZEB5SHM
+AGENTCORE_PLANNER_ALIAS_ID=KVBBNAXDPS
 
-# CORS
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+# AWS Configuration
+AWS_REGION=us-east-1
 
-# API
-API_V1_STR=/api/v1
-PROJECT_NAME=UTD Career Spark
+# Lambda Functions (deployed)
+LAMBDA_JOB_MARKET_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools
+LAMBDA_NEBULA_API_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-NebulaAPITools
+LAMBDA_PROJECT_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ProjectTools
+
+# API Keys (for external services)
+NEBULA_API_KEY=your_nebula_api_key
+KAGGLE_USERNAME=your_kaggle_username
+KAGGLE_KEY=your_kaggle_key
 ```
 
 ### Dependencies
 
 The project uses the following key dependencies:
 
-- **fastapi==0.104.1** - Modern, fast web framework
-- **uvicorn[standard]==0.24.0** - ASGI server with standard extras
-- **python-multipart==0.0.6** - Multipart form data parsing
-- **python-jose[cryptography]==3.3.0** - JWT token handling
-- **passlib[bcrypt]==1.7.4** - Password hashing
-- **python-dotenv==1.0.0** - Environment variable loading
+- **fastapi** - Modern, fast web framework
+- **uvicorn** - ASGI server with standard extras
+- **bedrock-agentcore** - AWS Bedrock AgentCore SDK
+- **boto3/aioboto3** - AWS SDK for Python
+- **python-dotenv** - Environment variable loading
+- **pydantic** - Data validation and settings
+- **httpx** - HTTP client for async requests
 
 ## 🚀 Development
 
@@ -151,17 +171,21 @@ The FastAPI application provides automatic API documentation:
 
 ### Main Application
 
-The main FastAPI application is defined in `main.py`:
+The main FastAPI application is defined in `main.py` with AgentCore integration:
 
 ```python
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from agentcore_orchestrator import AgentCoreOrchestrator
 
 app = FastAPI(
     title="UTD Career Spark API",
-    description="Backend API for UTD Career Spark platform",
-    version="1.0.0"
+    description="Career guidance system powered by AWS Bedrock AgentCore",
+    version="2.0.0"
 )
+
+# Initialize AgentCore orchestrator
+orchestrator = AgentCoreOrchestrator()
 
 # CORS middleware
 app.add_middleware(
@@ -172,6 +196,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 ```
+
+### Lambda Functions
+
+The backend integrates with 6 custom Lambda functions:
+
+1. **UTD-JobMarketTools** - Web scraping (Hacker News, IT Jobs Watch)
+2. **UTD-NebulaAPITools** - UTD course/professor data via Nebula API
+3. **UTD-ProjectTools** - Project recommendations (GitHub, ArXiv, Hugging Face, Kaggle)
+4. **UTD-ValidateJobMarket** - Job market format validation
+5. **UTD-ValidateCourse** - Course format validation
+6. **UTD-ValidateProject** - Project format validation
 
 ### Development Server
 
