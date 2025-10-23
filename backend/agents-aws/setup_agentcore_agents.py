@@ -227,9 +227,8 @@ def create_and_prepare_agent(
                                         "required": True,
                                     },
                                     "sources": {
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                        "description": "List of sources to search (github, arxiv, huggingface, kaggle)",
+                                        "type": "string",
+                                        "description": "Comma-separated list of sources to search (github, arxiv, huggingface, kaggle)",
                                         "required": False,
                                     },
                                 },

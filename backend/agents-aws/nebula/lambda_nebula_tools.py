@@ -34,6 +34,8 @@ def get_course_sections_trends(
             return ([], f"API error: {data.get('data', 'Unknown error')}")
 
         sections = data.get("data", [])
+        if sections is None:
+            sections = []
         return (
             sections,
             f"Retrieved {len(sections)} sections for {subject_prefix} {course_number}",
@@ -69,6 +71,8 @@ def get_professor_sections_trends(
             return ([], f"API error: {data.get('data', 'Unknown error')}")
 
         sections = data.get("data", [])
+        if sections is None:
+            sections = []
         return (
             sections,
             f"Retrieved {len(sections)} sections for Professor {first_name} {last_name}",
@@ -123,6 +127,8 @@ def get_grades_by_semester(
             return ([], f"API error: {data.get('data', 'Unknown error')}")
 
         grades = data.get("data", [])
+        if grades is None:
+            grades = []
         return (grades, f"Retrieved {len(grades)} grade records")
 
     except requests.exceptions.RequestException as e:
@@ -153,6 +159,8 @@ def get_course_information(subject_prefix: str, course_number: str) -> Tuple[Dic
             return ({}, f"API error: {data.get('data', 'Unknown error')}")
 
         course_info = data.get("data", {})
+        if course_info is None:
+            course_info = {}
         return (
             course_info,
             f"Retrieved course information for {subject_prefix} {course_number}",
@@ -186,6 +194,8 @@ def get_professor_information(first_name: str, last_name: str) -> Tuple[Dict, st
             return ({}, f"API error: {data.get('data', 'Unknown error')}")
 
         professor_info = data.get("data", {})
+        if professor_info is None:
+            professor_info = {}
         return (
             professor_info,
             f"Retrieved professor information for {first_name} {last_name}",
@@ -277,7 +287,7 @@ def lambda_handler(event, context):
     {
         "actionGroup": "nebula_tools",
         "function": "get_course_sections_trends" | "get_professor_sections_trends" | "get_grades_by_semester" | "get_course_information" | "get_professor_information" | "get_course_dashboard_data" | "get_professor_dashboard_data",
-        "parameters": {"subject_prefix": "...", "course_number": "...", "first_name": "...", "last_name": "...", "prefix": "...", "number": "..."}
+        "parameters": [{"name": "subject_prefix", "type": "string", "value": "..."}, ...]
     }
     """
     print(f"Received event: {json.dumps(event)}")
@@ -285,7 +295,13 @@ def lambda_handler(event, context):
     # Extract action group and function from event
     action_group = event.get("actionGroup", "")
     function_name = event.get("function", "")
-    parameters = event.get("parameters", {})
+    parameters_list = event.get("parameters", [])
+
+    # Convert Bedrock parameter format to dictionary
+    parameters = {}
+    for param in parameters_list:
+        if isinstance(param, dict) and "name" in param and "value" in param:
+            parameters[param["name"]] = param["value"]
 
     # Execute the appropriate function
     if function_name == "get_course_sections_trends":
@@ -306,7 +322,11 @@ def lambda_handler(event, context):
         first_name = parameters.get("first_name", None)
         last_name = parameters.get("last_name", None)
         grades, summary = get_grades_by_semester(prefix, number, first_name, last_name)
-        result = {"grades": grades, "summary": summary, "count": len(grades)}
+        result = {
+            "grades": grades,
+            "summary": summary,
+            "count": len(grades) if grades else 0,
+        }
 
     elif function_name == "get_course_information":
         subject_prefix = parameters.get("subject_prefix", "")
