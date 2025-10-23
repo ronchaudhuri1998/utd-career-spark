@@ -312,7 +312,13 @@ def lambda_handler(event, context):
     # Extract action group and function from event
     action_group = event.get("actionGroup", "")
     function_name = event.get("function", "")
-    parameters = event.get("parameters", {})
+    parameters_list = event.get("parameters", [])
+
+    # Convert Bedrock parameter format to dictionary
+    parameters = {}
+    for param in parameters_list:
+        if isinstance(param, dict) and "name" in param and "value" in param:
+            parameters[param["name"]] = param["value"]
 
     # Execute the appropriate function
     if function_name == "search_github_projects":
@@ -336,8 +342,12 @@ def lambda_handler(event, context):
         result = {"datasets": datasets, "summary": summary, "count": len(datasets)}
     elif function_name == "search_project_inspiration":
         query = parameters.get("query", "")
-        sources = parameters.get(
-            "sources", ["github", "arxiv", "huggingface", "kaggle"]
+        sources_str = parameters.get("sources", "github,arxiv,huggingface,kaggle")
+        # Convert comma-separated string to list
+        sources = (
+            [s.strip() for s in sources_str.split(",")]
+            if sources_str
+            else ["github", "arxiv", "huggingface", "kaggle"]
         )
         results, summary = search_project_inspiration(query, sources)
         result = {"results": results, "summary": summary, "count": len(results)}

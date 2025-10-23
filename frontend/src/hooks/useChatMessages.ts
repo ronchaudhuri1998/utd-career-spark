@@ -105,52 +105,28 @@ export const useChatMessages = ({
           // Update existing message
           const existingMessage = prev[existingMessageIndex];
 
-          // If the message is already completed, only accept completion updates
-          if (existingMessage.meta?.status === "completed") {
-            // Only update if this is also a completion event
-            if (
-              latestProgress.status === "completed" ||
-              latestProgress.completed
-            ) {
-              updatedMessage = {
-                ...existingMessage,
-                text: latestProgress.event,
-                meta: {
-                  ...existingMessage.meta,
-                  call_id: callId,
-                  event: latestProgress.event,
-                  output: latestProgress.output,
-                  status: "completed",
-                  progressUpdates: existingMessage.meta?.progressUpdates || [],
-                },
-              };
-            } else {
-              return prev; // Return unchanged state
-            }
-          } else {
-            // Message is not completed, proceed with normal update
-            const progressUpdates = existingMessage.meta?.progressUpdates || [];
+          // Always allow status updates, including progress -> completed transitions
+          const progressUpdates = existingMessage.meta?.progressUpdates || [];
 
-            // Add new progress update if it's different from the last one
-            if (latestProgress.event !== existingMessage.text) {
-              progressUpdates.push(latestProgress.event);
-            }
-
-            updatedMessage = {
-              ...existingMessage,
-              text: latestProgress.event,
-              meta: {
-                ...existingMessage.meta,
-                call_id: callId,
-                event: latestProgress.event,
-                output: latestProgress.output,
-                status:
-                  latestProgress.status ||
-                  (latestProgress.completed ? "completed" : "progress"),
-                progressUpdates: progressUpdates,
-              },
-            };
+          // Add new progress update if it's different from the last one
+          if (latestProgress.event !== existingMessage.text) {
+            progressUpdates.push(latestProgress.event);
           }
+
+          updatedMessage = {
+            ...existingMessage,
+            text: latestProgress.event,
+            meta: {
+              ...existingMessage.meta,
+              call_id: callId,
+              event: latestProgress.event,
+              output: latestProgress.output,
+              status:
+                latestProgress.status ||
+                (latestProgress.completed ? "completed" : "progress"),
+              progressUpdates: progressUpdates,
+            },
+          };
         } else {
           // Create new message for this agent
           updatedMessage = {

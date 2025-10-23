@@ -57,7 +57,7 @@ class AgentCoreOrchestrator:
         )
 
         # Extract reasoning, invocations, observations
-        result = {"agent": agent_label}
+        result = {"agent": agent_label, "status": "progress"}  # Default status
 
         if "orchestrationTrace" in trace_data:
             orch = trace_data["orchestrationTrace"]
@@ -65,6 +65,7 @@ class AgentCoreOrchestrator:
             # Reasoning
             if "rationale" in orch and orch["rationale"].get("text"):
                 result["reasoning"] = orch["rationale"]["text"]
+                result["status"] = "progress"  # Reasoning indicates work in progress
 
             # Collaborator invocation
             if "invocationInput" in orch:
@@ -75,6 +76,7 @@ class AgentCoreOrchestrator:
                         "agentCollaboratorName"
                     )
                     result["input_text"] = collab_input.get("input", {}).get("text")
+                    result["status"] = "started"  # Collaborator invocation started
 
             # Collaborator response
             if "observation" in orch:
@@ -85,6 +87,7 @@ class AgentCoreOrchestrator:
                         "agent": collab_output.get("agentCollaboratorName"),
                         "output": collab_output.get("output", {}).get("text"),
                     }
+                    result["status"] = "completed"  # Collaborator response received
 
         return result
 
