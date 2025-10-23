@@ -53,13 +53,26 @@ const ExperienceCard = ({
   const formatDateRange = (startDate?: string, endDate?: string) => {
     if (!startDate) return "";
 
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : null;
+    try {
+      const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : null;
 
-    const startFormatted = format(start, "MMM yyyy");
-    const endFormatted = end ? format(end, "MMM yyyy") : "Present";
+      // Check if dates are valid
+      if (isNaN(start.getTime())) {
+        return startDate; // Return original string if invalid
+      }
+      if (end && isNaN(end.getTime())) {
+        return `${format(start, "MMM yyyy")} – ${endDate}`; // Return original endDate if invalid
+      }
 
-    return `${startFormatted} – ${endFormatted}`;
+      const startFormatted = format(start, "MMM yyyy");
+      const endFormatted = end ? format(end, "MMM yyyy") : "Present";
+
+      return `${startFormatted} – ${endFormatted}`;
+    } catch (error) {
+      console.warn("Error formatting date range:", error);
+      return startDate || ""; // Return original string on error
+    }
   };
 
   return (

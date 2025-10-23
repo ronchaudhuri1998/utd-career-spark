@@ -46,6 +46,154 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     resume: null as File | null,
     major: userData.major || "",
   });
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Mock resume data
+  const mockResumeData = {
+    name: "Davis Mo",
+    email: "davis.mo@utdallas.edu",
+    phone: "217-974-5699",
+    location: "Richardson, TX",
+    citizenship: "US Citizen",
+    linkedin: "www.linkedin.com/in/davismo",
+    website: "www.davismo.dev",
+    github: "www.github.com/davis118",
+    summary:
+      "Outgoing, high-energy but detailed Computer Science student with experience in React, Next.js, Supabase, and cloud deployment. Strong background in algorithms, robotics, and data engineering, including motion profiling, vector embeddings, and real-time dashboards. Research and industry experience in NLP, LLMs, and large-scale scraping pipelines, with a track record of winning technical competitions and delivering real-world solutions.",
+    education: [
+      {
+        institution: "The University of Texas at Dallas",
+        degree: "Bachelor of Science, Computer Science, CS2 Honors Program",
+        location: "Richardson, TX",
+        graduationDate: "Expected May 2028",
+      },
+      {
+        institution: "Concordia International School",
+        degree: "High School Diploma (3.97/4.0 GPA)",
+        location: "Shanghai, China",
+        graduationDate: "August 2021 – June 2025",
+      },
+    ],
+    technicalSkills: {
+      programmingLanguages: "Typescript, Python, C++, HTML, CSS",
+      frameworks: "React, Next.js, Tailwind, Vite",
+      tools: "Git, Github Actions, VS Code, Jupyter",
+      libraries: "FAISS, OpenAI, Pandas, GSAP, shadcn/ui",
+    },
+    workExperience: [
+      {
+        title: "Research Assistant, Faculty Expertise and SDG Dashboard",
+        company: "University of Illinois, Urbana-Champaign",
+        location: "Champaign, IL",
+        duration: "November 2024 – Present",
+        technologies: "Github Actions, Next.js, Pandas, Langchain",
+        description:
+          "Deployed data pipeline to Github Actions, scraping 7,000+ university papers with Selenium and proxy switching. Designed full-stack dashboard with React, Vercel, and vector embeddings, enabling discovery of faculty expertise. Used large language models (LLMs) for NLP processing of sustainability relevance, reaching 85% accuracy. Partnered with non-technical faculty stakeholders to translate accreditation requirements into product features.",
+      },
+      {
+        title: "AI Team Intern",
+        company: "Qihoo 360",
+        location: "Beijing, China",
+        duration: "June 2025 – July 2025",
+        technologies: "Vue.js, React, GSAP",
+        description:
+          "Developed and maintained internal tools to visualize service performance with React and Vue.js. Built data dashboard with GSAP, displaying metrics for a network security tool with 3,000,000+ requests per day. Created customer-facing visualizations comparing internal and external LLM performance across benchmarks. Authored a detailed report evaluating LLM-assisted front-end development tools, guiding internal use.",
+      },
+    ],
+    projects: [
+      {
+        title: "Data Analytics E-book (Co-Author)",
+        duration: "June 2021 – September 2024",
+        technologies: "Mathematica Cloud, Mathematica, React",
+        description:
+          "Developed 14 automated data analytics modules analyzing financial disclosures, web scraping, sentiment analysis, corporate website frontpages, CEO linguistic style. Created a React + Wolfram Cloud platform to display student-facing interactive modules. Co-authored an e-book (ISBN: 9780965053280) on data analytics, winning 2024 Wolfram Innovator Award.",
+      },
+      {
+        title: "USACO Competition",
+        duration: "June 2021 – September 2024",
+        technologies: "C++, Data Structures and Algorithms",
+        description:
+          "Solved problems by creatively using algorithms such as dynamic programming, graph traversal, and greedy optimization. Consistently ranked in USACO Gold by demonstrating strong C++ and algorithmic design skills.",
+      },
+    ],
+    studentOrganizations: [
+      {
+        title: "VEX Robotics Team",
+        role: "Robotics Team Lead (Concordia International) | Developer (UT Dallas)",
+        location: "Richardson, TX",
+        duration: "June 2023 – Current",
+        technologies: "Fusion360, C++, Python, ROS2",
+        description:
+          "Optimized mechanical subsystems for VEX Robotics Competition using Fusion360 and physical testing. Developed and implemented path-following algorithm with motion profiling enabling smooth autonomous movement, achieving 180% speedup compared to baseline approach. Led a 4-member team via planning, delegation, and communication, qualifying to VEX World Championships. Worked with ROS2 and Docker containers to interface with Jetson Nano.",
+      },
+      {
+        title: "Nebula Labs",
+        role: "UTD Trends Developer",
+        location: "Richardson, TX",
+        duration: "August 2025 – Current",
+        technologies: "Next.js, SSR, Supabase, PostgreSQL, Vercel",
+        description:
+          "Maintained and enhanced the Next.js frontend for UTD Trends, a tool aggregating Rate My Professor, grade, and course data, serving 10,000+ unique annual impressions. Contributed to 3 feature/bug issues and began developing a Gemini-powered RMP data analyzer for advanced insights. Gained experience with product management tools including Atlassian Confluence and Jira.",
+      },
+      {
+        title: "Artificial Intelligence Society",
+        role: "Innovation Lab Developer",
+        location: "Richardson, TX",
+        duration: "August 2025 – Current",
+        technologies: "Web scraping, AI chatbot development",
+        description:
+          "Developed AskTemoc, an AI chatbot streamlining UTD advising via web scraping. Implemented frontend interfaces and backend data extraction to deliver accurate, real-time advising information.",
+      },
+    ],
+  };
+
+  const handleFileUpload = (file: File | null) => {
+    if (file) {
+      // Automatically load Davis Mo resume data when any file is uploaded
+      const mockFile = new File(
+        [JSON.stringify(mockResumeData)],
+        "davis_mo_resume.json",
+        {
+          type: "application/json",
+        }
+      );
+      setFormData({
+        ...formData,
+        resume: mockFile,
+      });
+      toast.success("Mock resume data loaded automatically!");
+    } else {
+      setFormData({
+        ...formData,
+        resume: null,
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    handleFileUpload(file);
+  };
 
   const handleEnhanceWithAI = async () => {
     if (!formData.careerGoal.trim()) {
@@ -79,12 +227,104 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     if (step === 1) {
       // Just move to next step without processing
       setStep(step + 1);
+    } else if (step === 2) {
+      // Process resume data if uploaded
+      if (formData.resume) {
+        try {
+          // If it's the mock resume, extract the data
+          if (formData.resume.name === "davis_mo_resume.json") {
+            const resumeText = await formData.resume.text();
+            const resumeData = JSON.parse(resumeText);
+
+            // Update user data with resume information
+            updateUserData({
+              name: resumeData.name,
+              email: resumeData.email,
+              phone: resumeData.phone,
+              location: resumeData.location,
+              major: resumeData.education[0]?.degree.includes(
+                "Computer Science"
+              )
+                ? "Computer Science"
+                : formData.major,
+              graduationYear: resumeData.education[0]?.graduationDate.includes(
+                "2028"
+              )
+                ? "2028"
+                : "",
+              skills: [
+                ...resumeData.technicalSkills.programmingLanguages.split(", "),
+                ...resumeData.technicalSkills.frameworks.split(", "),
+                ...resumeData.technicalSkills.tools.split(", "),
+                ...resumeData.technicalSkills.libraries.split(", "),
+              ],
+              experience: resumeData.workExperience.map((exp: any) => {
+                // Parse duration strings to proper date formats
+                const durationParts = exp.duration.split(" – ");
+                const startDate = durationParts[0];
+                const endDate = durationParts[1];
+
+                // Convert month names to proper date format
+                const parseDate = (dateStr: string) => {
+                  if (dateStr === "Present") return undefined;
+
+                  // Handle formats like "November 2024" or "June 2025"
+                  const monthMap: { [key: string]: string } = {
+                    January: "01",
+                    February: "02",
+                    March: "03",
+                    April: "04",
+                    May: "05",
+                    June: "06",
+                    July: "07",
+                    August: "08",
+                    September: "09",
+                    October: "10",
+                    November: "11",
+                    December: "12",
+                  };
+
+                  const parts = dateStr.split(" ");
+                  if (parts.length === 2) {
+                    const month = monthMap[parts[0]];
+                    const year = parts[1];
+                    if (month && year) {
+                      return `${year}-${month}-01`; // Use first day of month
+                    }
+                  }
+
+                  return undefined;
+                };
+
+                return {
+                  title: exp.title,
+                  company: exp.company,
+                  startDate: parseDate(startDate),
+                  endDate: parseDate(endDate),
+                  description: exp.description,
+                  technologies: exp.technologies,
+                  location: exp.location,
+                };
+              }),
+              bio: resumeData.summary,
+            });
+
+            toast.success("Resume data processed and profile updated!");
+          }
+        } catch (error) {
+          console.error("Error processing resume:", error);
+          toast.error("Error processing resume data");
+        }
+      }
+      setStep(step + 1);
     } else if (step === 3) {
       // Save all form data to user context
       updateUserData({
         careerGoal: formData.careerGoal,
         major: formData.major,
-        bio: `Passionate ${formData.major} student. ${formData.careerGoal} Looking to make an impact in the tech industry through innovative solutions.`,
+        bio:
+          userData.bio ||
+          `Passionate ${formData.major} student. ${formData.careerGoal} Looking to make an impact in the tech industry through innovative solutions.`,
       });
 
       setOnboarded(true);
@@ -239,24 +479,44 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
                   Upload your resume (optional)
                 </h2>
               </div>
-              <div className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer">
-                <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  Drag and drop your resume here, or click to browse
+              <div
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer ${
+                  isDragOver
+                    ? "border-primary bg-primary/5 scale-105"
+                    : "border-border hover:border-primary"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() =>
+                  document.getElementById("resume-upload")?.click()
+                }
+              >
+                <Upload
+                  className={`w-12 h-12 mx-auto mb-4 transition-colors ${
+                    isDragOver ? "text-primary" : "text-muted-foreground"
+                  }`}
+                />
+                <p
+                  className={`mb-2 transition-colors ${
+                    isDragOver
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {isDragOver
+                    ? "Drop your resume here!"
+                    : "Drag and drop your resume here, or click to browse"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   PDF, DOC, DOCX up to 10MB
                 </p>
                 <Input
+                  id="resume-upload"
                   type="file"
                   className="hidden"
                   accept=".pdf,.doc,.docx"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      resume: e.target.files?.[0] || null,
-                    })
-                  }
+                  onChange={handleFileInputChange}
                 />
               </div>
               {formData.resume && (
