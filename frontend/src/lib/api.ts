@@ -70,7 +70,7 @@ export interface ProcessCareerGoalResponse {
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
-  "http://127.0.0.1:8000";
+  "https://fhvdanzd67.us-east-1.awsapprunner.com";
 
 export async function requestIntro(
   goal: string,
