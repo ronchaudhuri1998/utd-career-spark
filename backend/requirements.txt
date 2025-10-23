@@ -1,12 +1,19 @@
-# Minimal requirements for App Runner testing
+# Core FastAPI dependencies
 fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
+
+# AWS dependencies
+boto3
 aioboto3
 bedrock-agentcore
+
+# HTTP and async dependencies
 httpx
 httpx-sse
 aiohttp
 aiofiles
+
+# Additional utilities
 python-multipart
