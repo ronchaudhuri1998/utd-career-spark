@@ -21,11 +21,25 @@ export interface IntroResponse {
 }
 
 export interface PlanRequestExtras {
+  // Keep existing fields
   student_year?: string;
   courses_taken?: string;
   about?: string;
   time_commitment?: string;
   contact_email?: string;
+
+  // Add new fields
+  user_name?: string;
+  user_email?: string;
+  user_phone?: string;
+  user_location?: string;
+  user_major?: string;
+  graduation_year?: string;
+  gpa?: string;
+  career_goal?: string;
+  bio?: string;
+  skills?: string;
+  experience?: string;
 }
 
 export interface ChatRequest {

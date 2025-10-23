@@ -20,8 +20,8 @@ const Profile = () => {
     graduationYear: "",
     major: "",
     gpa: "",
+    coursesTaken: "",
     careerGoal: "",
-    bio: "",
     skills: [] as string[],
     experience: [] as UserExperience[],
   });
@@ -61,8 +61,8 @@ const Profile = () => {
       graduationYear: userData.graduationYear || "",
       major: userData.major || "",
       gpa: userData.gpa || "",
+      coursesTaken: userData.coursesTaken || "",
       careerGoal: userData.careerGoal || "",
-      bio: userData.bio || "",
       skills: [...userData.skills],
       experience: [...userData.experience],
     });
@@ -80,6 +80,32 @@ const Profile = () => {
 
   const handleBack = () => {
     navigate("/dashboard");
+  };
+
+  const handleDebug = () => {
+    console.log("🔍 Full Profile Page Info:");
+    console.log("📊 User Data:", userData);
+    console.log("✏️ Edit Data:", editData);
+    console.log("🎯 Is Editing:", isEditing);
+    console.log("🆔 Session ID:", userData);
+    console.log("📝 Skills:", userData.skills);
+    console.log("💼 Experience:", userData.experience);
+    console.log("🎓 Academic Info:", {
+      major: userData.major,
+      gpa: userData.gpa,
+      coursesTaken: userData.coursesTaken,
+      graduationYear: userData.graduationYear,
+    });
+    console.log("👤 Personal Info:", {
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      location: userData.location,
+    });
+    console.log("🎯 Career Goal:", userData.careerGoal);
+    console.log("📚 Student Year:", userData.studentYear);
+    console.log("⏰ Time Commitment:", userData.timeCommitment);
+    console.log("✅ Is Onboarded:", userData.isOnboarded);
   };
 
   // Skills management
@@ -233,6 +259,7 @@ const Profile = () => {
         onSave={handleSave}
         onCancel={handleCancel}
         onBack={handleBack}
+        onDebug={handleDebug}
       />
 
       <main className="container mx-auto px-6 py-8">
@@ -268,12 +295,18 @@ const Profile = () => {
             <AcademicInfoCard
               major={isEditing ? editData.major : userData.major}
               gpa={isEditing ? editData.gpa : userData.gpa}
+              coursesTaken={
+                isEditing ? editData.coursesTaken : userData.coursesTaken
+              }
               isEditing={isEditing}
               onMajorChange={(value) =>
                 setEditData((prev) => ({ ...prev, major: value }))
               }
               onGpaChange={(value) =>
                 setEditData((prev) => ({ ...prev, gpa: value }))
+              }
+              onCoursesTakenChange={(value) =>
+                setEditData((prev) => ({ ...prev, coursesTaken: value }))
               }
             />
 

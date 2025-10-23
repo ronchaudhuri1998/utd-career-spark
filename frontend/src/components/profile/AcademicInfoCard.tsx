@@ -6,17 +6,21 @@ import { GraduationCap } from "lucide-react";
 interface AcademicInfoCardProps {
   major: string;
   gpa: string;
+  coursesTaken: string;
   isEditing: boolean;
   onMajorChange: (value: string) => void;
   onGpaChange: (value: string) => void;
+  onCoursesTakenChange: (value: string) => void;
 }
 
 const AcademicInfoCard = ({
   major,
   gpa,
+  coursesTaken,
   isEditing,
   onMajorChange,
   onGpaChange,
+  onCoursesTakenChange,
 }: AcademicInfoCardProps) => {
   return (
     <Card className="mt-6">
@@ -54,6 +58,21 @@ const AcademicInfoCard = ({
           ) : (
             <p className="text-sm text-muted-foreground mt-1">
               {gpa || "No GPA"}
+            </p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="courses-taken">Courses Taken</Label>
+          {isEditing ? (
+            <Input
+              id="courses-taken"
+              value={coursesTaken}
+              onChange={(e) => onCoursesTakenChange(e.target.value)}
+              placeholder="e.g., CS 1336, MATH 2413, PHYS 2325"
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">
+              {coursesTaken || "No courses listed"}
             </p>
           )}
         </div>

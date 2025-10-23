@@ -23,6 +23,7 @@ import {
   Target,
   UserCircle,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
@@ -39,11 +40,35 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
   const { userData, updateUserData, setOnboarded } = useUserData();
   const [step, setStep] = useState(1);
   const [isProcessingGoal, setIsProcessingGoal] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [formData, setFormData] = useState({
     careerGoal: userData.careerGoal || "",
     resume: null as File | null,
     major: userData.major || "",
   });
+
+  const handleEnhanceWithAI = async () => {
+    if (!formData.careerGoal.trim()) {
+      toast.error("Please enter your career goal first");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const response = await processCareerGoal(formData.careerGoal);
+      // Update the form data with the processed goal
+      setFormData((prev) => ({
+        ...prev,
+        careerGoal: response.processed_goal,
+      }));
+      toast.success("Career goal enhanced with AI!");
+    } catch (error) {
+      console.error("Failed to enhance career goal:", error);
+      toast.error("Failed to enhance career goal. Please try again.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const handleContinue = async () => {
     if (step === 1 && !formData.careerGoal) {
@@ -52,24 +77,8 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     }
 
     if (step === 1) {
-      // Process the career goal using the API
-      setIsProcessingGoal(true);
-      try {
-        const response = await processCareerGoal(formData.careerGoal);
-        // Update the form data with the processed goal
-        setFormData((prev) => ({
-          ...prev,
-          careerGoal: response.processed_goal,
-        }));
-        toast.success("Career goal processed successfully!");
-        setStep(step + 1);
-      } catch (error) {
-        console.error("Failed to process career goal:", error);
-        toast.error("Failed to process career goal. Using original input.");
-        setStep(step + 1);
-      } finally {
-        setIsProcessingGoal(false);
-      }
+      // Just move to next step without processing
+      setStep(step + 1);
     } else if (step === 3) {
       // Save all form data to user context
       updateUserData({
@@ -177,21 +186,45 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
                   What's your career goal?
                 </h2>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="career-goal">Career Goal</Label>
-                <Textarea
-                  id="career-goal"
-                  placeholder="Tell us about your career aspirations in your own words... e.g., 'I want to become a data scientist working with machine learning' or 'I'm interested in becoming a software engineer at a tech company'"
-                  value={formData.careerGoal}
-                  onChange={(e) =>
-                    setFormData({ ...formData, careerGoal: e.target.value })
-                  }
-                  className="min-h-[120px] resize-none"
-                  disabled={isProcessingGoal}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="career-goal">Career Goal</Label>
+                  <Textarea
+                    id="career-goal"
+                    placeholder="Tell us about your career aspirations in your own words... e.g., 'I want to become a data scientist working with machine learning' or 'I'm interested in becoming a software engineer at a tech company'"
+                    value={formData.careerGoal}
+                    onChange={(e) =>
+                      setFormData({ ...formData, careerGoal: e.target.value })
+                    }
+                    className="min-h-[120px] resize-none"
+                    disabled={isEnhancing}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancing || !formData.careerGoal.trim()}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {isEnhancing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Enhance with AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+
                 <p className="text-sm text-muted-foreground">
-                  Describe your career goals in natural language. Our AI will
-                  help structure and clarify your aspirations.
+                  Describe your career goals in natural language. Click "Enhance
+                  with AI" to get a more structured and professional version.
                 </p>
               </div>
             </div>
@@ -337,19 +370,9 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
               )}
               <Button
                 onClick={handleContinue}
-                disabled={isProcessingGoal}
                 className="flex-1 bg-gradient-primary hover:opacity-90 transition-opacity"
               >
-                {isProcessingGoal ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : step === 3 ? (
-                  "Complete Setup"
-                ) : (
-                  "Next"
-                )}
+                {step === 3 ? "Complete Setup" : "Next"}
               </Button>
             </div>
           )}

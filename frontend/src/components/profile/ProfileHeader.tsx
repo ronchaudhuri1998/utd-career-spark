@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Edit3, Save, X } from "lucide-react";
+import { ArrowLeft, Edit3, Save, X, Bug } from "lucide-react";
 
 interface ProfileHeaderProps {
   isEditing: boolean;
@@ -8,6 +8,7 @@ interface ProfileHeaderProps {
   onSave: () => void;
   onCancel: () => void;
   onBack: () => void;
+  onDebug?: () => void;
 }
 
 const ProfileHeader = ({
@@ -16,6 +17,7 @@ const ProfileHeader = ({
   onSave,
   onCancel,
   onBack,
+  onDebug,
 }: ProfileHeaderProps) => {
   return (
     <div className="bg-card/50 backdrop-blur-sm border-b border-border">
@@ -35,6 +37,17 @@ const ProfileHeader = ({
             <h1 className="text-2xl font-bold text-foreground">Profile</h1>
           </div>
           <div className="flex gap-2">
+            {onDebug && (
+              <Button
+                onClick={onDebug}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Bug className="w-4 h-4" />
+                Debug
+              </Button>
+            )}
             {isEditing ? (
               <>
                 <Button onClick={onSave} size="sm" className="gap-2">

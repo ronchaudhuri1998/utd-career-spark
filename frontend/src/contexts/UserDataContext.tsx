@@ -32,7 +32,6 @@ export interface UserData {
   major: string;
   gpa: string;
   careerGoal: string;
-  bio: string;
   studentYear: string;
   coursesTaken: string;
   timeCommitment: string;
@@ -68,7 +67,6 @@ const defaultUserData: UserData = {
   major: "",
   gpa: "",
   careerGoal: "",
-  bio: "",
   studentYear: "",
   coursesTaken: "",
   timeCommitment: "",
@@ -148,6 +146,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [agentOutputs, setAgentOutputs] =
     useState<AgentOutputs>(defaultAgentOutputs);
   const [sessionId, setSessionIdState] = useState<string>("");
+  const [sessionContextInitialized, setSessionContextInitialized] =
+    useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sectionLoading, setSectionLoadingState] =
     useState<SectionLoadingStates>({
@@ -235,6 +235,11 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     }
   }, [sessionId]);
 
+  // Reset context flag when session changes
+  useEffect(() => {
+    setSessionContextInitialized(false);
+  }, [sessionId]);
+
   const updateUserData = (updates: UserDataUpdate) => {
     setUserData((prev) => ({
       ...prev,
@@ -296,19 +301,49 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
 
     try {
+      // Build complete user context
       const extras: PlanRequestExtras = {
+        user_name: userData.name,
+        user_email: userData.email,
+        user_phone: userData.phone,
+        user_location: userData.location,
+        user_major: userData.major,
+        graduation_year: userData.graduationYear,
+        gpa: userData.gpa,
+        career_goal: userData.careerGoal,
         student_year:
           details?.studentYear ??
           userData.studentYear ??
           userData.graduationYear ??
           "",
         courses_taken: details?.coursesTaken ?? userData.coursesTaken ?? "",
-        about: details?.about ?? userData.bio ?? "",
         time_commitment:
           details?.timeCommitment ?? userData.timeCommitment ?? "",
+        skills: userData.skills.join(", "),
+        experience: JSON.stringify(userData.experience),
+        // Legacy fields for backward compatibility
+        about: details?.about ?? userData.careerGoal ?? "",
         contact_email: details?.contactEmail ?? userData.email ?? "",
       };
-      const response = await generatePlan(goal, sessionId || undefined, extras);
+
+      // Only send context on first message
+      if (!sessionContextInitialized) {
+        console.log("🔧 FRONTEND: Sending full user context to backend:");
+        console.log("   User context:", extras);
+      } else {
+        console.log(
+          "🔧 FRONTEND: Skipping user context (already sent for this session)"
+        );
+      }
+
+      const response = await generatePlan(
+        goal,
+        sessionId || undefined,
+        sessionContextInitialized ? undefined : extras
+      );
+
+      // Mark context as sent
+      setSessionContextInitialized(true);
       setAgentOutputs({
         finalPlan: response.final_plan ?? "",
         jobMarket: response.job_market ?? "",

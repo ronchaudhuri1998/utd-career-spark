@@ -58,10 +58,23 @@ class IntroRequest(BaseModel):
 class PlanRequest(BaseModel):
     goal: str
     session_id: Optional[str] = None
+    # User profile fields
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    user_phone: Optional[str] = None
+    user_location: Optional[str] = None
+    user_major: Optional[str] = None
+    graduation_year: Optional[str] = None
+    gpa: Optional[str] = None
+    bio: Optional[str] = None
+    career_goal: Optional[str] = None
     student_year: Optional[str] = None
     courses_taken: Optional[str] = None
-    about: Optional[str] = None
     time_commitment: Optional[str] = None
+    skills: Optional[str] = None  # comma-separated
+    experience: Optional[str] = None  # JSON string
+    # Legacy fields for backward compatibility
+    about: Optional[str] = None
     contact_email: Optional[str] = None
 
 
@@ -142,12 +155,13 @@ def process_career_goal(natural_language_goal: str) -> str:
         f"Create a single, well-written paragraph (3-4 sentences) that describes their career aspirations. "
         f"Write it as a flowing narrative, not a bulleted list. "
         f"Start with their desired role, mention key skills/technologies, and end with their long-term vision. "
-        f"Make it sound natural and professional, like something they would write in a bio or resume summary."
+        f"Make it sound natural and professional, like something they would write in a bio or resume summary. "
+        f"Output ONLY the career goal statement, no introductory text or explanations."
     )
     try:
         return claude_chat(
             prompt,
-            system_prompt="You are a career guidance expert who helps students write clear, professional career goal statements. Write as a single flowing paragraph, not a list.",
+            system_prompt="You are a career guidance expert. Output ONLY the career goal statement. Do not include any introductory text, explanations, or formatting. Just return the goal statement itself.",
             max_tokens=200,
             temperature=0.3,
         ).strip()
@@ -221,14 +235,45 @@ async def api_plan_stream(request: PlanRequest):
     """
     session_id = request.session_id or generate_session_id()
 
-    # Build extra context
-    extra_context = {
-        "student_background": request.about,
-        "degree_level": request.student_year,
-        "courses_taken": request.courses_taken,
-        "time_commitment": request.time_commitment,
-        "contact_email": request.contact_email,
-    }
+    # Check if request contains user profile fields (if frontend sent them)
+    has_user_context = bool(
+        request.user_name
+        or request.user_email
+        or request.user_major
+        or request.graduation_year
+        or request.gpa
+        or request.career_goal
+        or request.bio
+        or request.student_year
+        or request.courses_taken
+        or request.time_commitment
+        or request.skills
+        or request.experience
+    )
+
+    # Build user context if present
+    user_context = None
+    if has_user_context:
+        user_context = {
+            "user_name": request.user_name or "",
+            "user_email": request.user_email or request.contact_email or "",
+            "user_phone": request.user_phone or "",
+            "user_location": request.user_location or "",
+            "user_major": request.user_major or "",
+            "graduation_year": request.graduation_year or "",
+            "gpa": request.gpa or "",
+            "career_goal": request.career_goal or "",
+            "bio": request.bio or request.about or "",
+            "student_year": request.student_year or "",
+            "courses_taken": request.courses_taken or "",
+            "time_commitment": request.time_commitment or "",
+            "skills": request.skills or "",
+            "experience": request.experience or "",
+        }
+        logger.info(f"Building user context for session {session_id}")
+        print(f"🔧 BACKEND: Full user context being sent to AgentCore:")
+        for key, value in user_context.items():
+            print(f"   {key}: {value}")
 
     if not request.goal.strip():
         raise HTTPException(status_code=400, detail="Goal is required.")
@@ -249,7 +294,7 @@ async def api_plan_stream(request: PlanRequest):
             # Stream events from AgentCore
             event_count = 0
             async for event in orchestrator.invoke_supervisor_stream(
-                goal=request.goal, session_id=session_id, extra_context=extra_context
+                goal=request.goal, session_id=session_id, user_context=user_context
             ):
                 event_count += 1
                 event_data = f"data: {json.dumps(event)}\n\n"

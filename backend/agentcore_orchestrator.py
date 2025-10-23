@@ -21,29 +21,28 @@ class AgentCoreOrchestrator:
         self.planner_alias_id = os.getenv("AGENTCORE_PLANNER_ALIAS_ID")
         self.session = aioboto3.Session()
 
-    def _build_input_text(
-        self, goal: str, extra_context: Optional[Dict[str, str]]
-    ) -> str:
-        """Build input text with context."""
-        input_parts = [f"Create a comprehensive career plan for: {goal}"]
+    def _build_input_text(self, goal: str) -> str:
+        """Build input text for the agent."""
+        return f"Create a comprehensive career plan for: {goal}"
 
-        if extra_context:
-            if extra_context.get("student_background"):
-                input_parts.append(
-                    f"Background: {extra_context['student_background']}"
-                )
-            if extra_context.get("degree_level"):
-                input_parts.append(f"Academic level: {extra_context['degree_level']}")
-            if extra_context.get("courses_taken"):
-                input_parts.append(
-                    f"Courses completed: {extra_context['courses_taken']}"
-                )
-            if extra_context.get("time_commitment"):
-                input_parts.append(
-                    f"Available time: {extra_context['time_commitment']}"
-                )
-
-        return "\n".join(input_parts)
+    def _build_session_attributes(self, user_context: Dict[str, str]) -> Dict[str, str]:
+        """Build sessionAttributes from user context."""
+        return {
+            "user_name": user_context.get("user_name") or "",
+            "user_email": user_context.get("user_email") or "",
+            "user_phone": user_context.get("user_phone") or "",
+            "user_location": user_context.get("user_location") or "",
+            "user_major": user_context.get("user_major") or "",
+            "graduation_year": user_context.get("graduation_year") or "",
+            "gpa": user_context.get("gpa") or "",
+            "career_goal": user_context.get("career_goal") or "",
+            "bio": user_context.get("bio") or "",
+            "student_year": user_context.get("student_year") or "",
+            "courses_taken": user_context.get("courses_taken") or "",
+            "time_commitment": user_context.get("time_commitment") or "",
+            "skills": user_context.get("skills") or "",
+            "experience": user_context.get("experience") or "",
+        }
 
     def _parse_trace_event(self, event: Dict) -> Dict:
         """Extract useful info from trace event."""
@@ -95,25 +94,42 @@ class AgentCoreOrchestrator:
         self,
         goal: str,
         session_id: str,
-        extra_context: Optional[Dict[str, str]] = None,
+        user_context: Optional[Dict[str, str]] = None,
     ) -> AsyncIterator[Dict]:
         """Stream supervisor agent response as async generator."""
-        input_text = self._build_input_text(goal, extra_context)
+        input_text = self._build_input_text(goal)
 
         logger.info(f"Invoking AgentCore supervisor for session {session_id}")
+
+        # Build sessionState if user context is provided
+        session_state = None
+        if user_context:
+            session_attributes = self._build_session_attributes(user_context)
+            session_state = {"sessionAttributes": session_attributes}
+            logger.info(f"Including sessionAttributes for session {session_id}")
+            print(f"🔧 AGENTCORE: Sending sessionAttributes to AWS Bedrock:")
+            for key, value in session_attributes.items():
+                print(f"   {key}: {value}")
 
         # Create async Bedrock client
         async with self.session.client(
             "bedrock-agent-runtime", region_name=self.region
         ) as runtime_client:
 
-            response = await runtime_client.invoke_agent(
-                agentId=self.planner_id,
-                agentAliasId=self.planner_alias_id,
-                sessionId=session_id,
-                inputText=input_text,
-                enableTrace=True,
-            )
+            # Prepare invoke_agent parameters
+            invoke_params = {
+                "agentId": self.planner_id,
+                "agentAliasId": self.planner_alias_id,
+                "sessionId": session_id,
+                "inputText": input_text,
+                "enableTrace": True,
+            }
+
+            # Add sessionState if we have user context
+            if session_state:
+                invoke_params["sessionState"] = session_state
+
+            response = await runtime_client.invoke_agent(**invoke_params)
 
             chunk_count = 0
             trace_count = 0
