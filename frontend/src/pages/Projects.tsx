@@ -16,6 +16,7 @@ import { ProjectCards } from "@/components/projects/ProjectCards";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { mockProjectData } from "@/data/mockProjectData";
 import { toast } from "sonner";
+import DashboardEmbeddedChat from "@/components/chat/DashboardEmbeddedChat";
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -92,33 +93,45 @@ const Projects = () => {
             </CardContent>
           </Card>
         ) : parsedData ? (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                Recommended Projects
-                <Badge variant="outline">{parsedData.projects.length}</Badge>
-              </h2>
-              <ProjectCards projects={parsedData.projects} />
+          <div className="grid lg:grid-cols-[1fr_450px] gap-6 w-full">
+            {/* Left: Dashboard Content */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  Recommended Projects
+                  <Badge variant="outline">{parsedData.projects.length}</Badge>
+                </h2>
+                <ProjectCards projects={parsedData.projects} />
+              </div>
+
+              <Card className="border border-dashed border-primary/40 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    How these were generated
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    The Project Advisor agent ingests live job market signals
+                    and course plans to craft projects that prove core
+                    competencies.
+                  </p>
+                  <p>
+                    Regenerating the plan (from onboarding or the dashboard
+                    chat) refreshes these ideas with the latest agent insights.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
 
-            <Card className="border border-dashed border-primary/40 bg-white">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  How these were generated
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  The Project Advisor agent ingests live job market signals and
-                  course plans to craft projects that prove core competencies.
-                </p>
-                <p>
-                  Regenerating the plan (from onboarding or the dashboard chat)
-                  refreshes these ideas with the latest agent insights.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Right: Embedded Chat */}
+            <div>
+              <DashboardEmbeddedChat
+                title="Project Advisor"
+                dashboardType="projects"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-6">

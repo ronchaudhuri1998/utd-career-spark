@@ -17,6 +17,7 @@ import { CourseInsightCards } from "@/components/course/CourseInsightCards";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { mockCourseData } from "@/data/mockCourseData";
 import { toast } from "sonner";
+import DashboardEmbeddedChat from "@/components/chat/DashboardEmbeddedChat";
 
 const Academics = () => {
   const navigate = useNavigate();
@@ -92,15 +93,26 @@ const Academics = () => {
           </Card>
         ) : parsedData ? (
           <>
-            <div className="grid lg:grid-cols-2 gap-6 w-full">
-              {/* Left: Course Catalog */}
-              <div>
-                <CourseList courses={parsedData.courses} />
+            <div className="grid lg:grid-cols-[1fr_450px] gap-6 w-full">
+              {/* Left: Dashboard Content */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Course Catalog */}
+                <div>
+                  <CourseList courses={parsedData.courses} />
+                </div>
+
+                {/* Course Insights */}
+                <div>
+                  <CourseInsightCards insights={parsedData.insights} />
+                </div>
               </div>
 
-              {/* Right: Course Insights */}
+              {/* Right: Embedded Chat */}
               <div>
-                <CourseInsightCards insights={parsedData.insights} />
+                <DashboardEmbeddedChat
+                  title="Academic Advisor"
+                  dashboardType="academics"
+                />
               </div>
             </div>
 
