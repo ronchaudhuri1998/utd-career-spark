@@ -27,20 +27,19 @@ const ChatInput = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <Input
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
           placeholder="Ask about your career goals..."
           onKeyDown={handleKeyDown}
           disabled={isSubmitting || !isConnected || disabled}
-          className="flex-1"
+          className="flex-1 h-10"
         />
         <Button
           onClick={onSend}
           disabled={isSubmitting || !isConnected || !message.trim() || disabled}
-          size="sm"
-          className="px-3"
+          className="h-10 w-10"
         >
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
