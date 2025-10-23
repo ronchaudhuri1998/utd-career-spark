@@ -18,6 +18,11 @@ interface Message {
     output?: string;
     status?: "started" | "progress" | "completed";
     progressUpdates?: string[];
+    toolCalls?: Array<{
+      type: string;
+      name: string;
+      result: string;
+    }>;
   };
 }
 

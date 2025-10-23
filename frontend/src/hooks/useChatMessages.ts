@@ -73,24 +73,28 @@ export const useChatMessages = ({
       const displayText = card.reasoningItems[0] || "Working...";
       const status = card.status === "completed" ? "completed" : "progress";
 
-      // Create a unique ID that includes timestamp and agent name to avoid conflicts
-      const uniqueId = `${card.startTime}-${agentName}-${Date.now()}`;
+      // Use the map key (which is the call_id) as the stable message ID
+      const uniqueId = agentName; // agentName is already the call_id from the map key
 
       console.log(
         `🔧 Creating new agent message with unique ID: ${uniqueId} for agent: ${agentName}`
       );
+
+      // Use the card.agent property for display name, not the map key
+      const displayAgentName = card.agent || agentName;
 
       messages.push({
         id: uniqueId,
         text: displayText,
         isUser: false,
         meta: {
-          agent: agentName,
+          agent: displayAgentName,
           call_id: agentName,
           event: displayText,
           output: card.output,
           status: status,
           progressUpdates: card.reasoningItems,
+          toolCalls: card.toolCalls,
         },
       });
     });
@@ -99,10 +103,46 @@ export const useChatMessages = ({
       console.log(`📝 Current chat history length: ${prev.length}`);
       console.log(`📝 New agent messages count: ${messages.length}`);
 
-      // Keep all previous messages and add new agent messages
-      // Since we're using unique IDs, we should keep all previous messages
-      // and just add the new ones
-      const allMessages = [...prev, ...messages];
+      // Create a map of all messages by ID for deduplication
+      const messageMap = new Map<string | number, Message>();
+
+      // Add all existing messages to the map (this preserves their data)
+      prev.forEach((msg) => {
+        messageMap.set(msg.id, msg);
+      });
+
+      // Add/update agent messages (these will replace existing entries with same ID)
+      messages.forEach((msg) => {
+        messageMap.set(msg.id, msg);
+      });
+
+      // Convert back to array and sort by ID (which includes timestamp for user messages)
+      // User messages have timestamp-based IDs, agent messages have stable call_ids
+      // We need to maintain insertion order for proper chronology
+      const allMessages = Array.from(messageMap.values());
+
+      // Sort messages chronologically
+      // User messages have numeric IDs (timestamps), agent cards have string IDs
+      // We'll sort by the order they appear in the original array or by timestamp
+      allMessages.sort((a, b) => {
+        // If both have numeric IDs (user messages), sort by ID
+        if (typeof a.id === "number" && typeof b.id === "number") {
+          return a.id - b.id;
+        }
+        // If one is user message and one is agent, preserve their relative order from prev
+        const aIndex = prev.findIndex((msg) => msg.id === a.id);
+        const bIndex = prev.findIndex((msg) => msg.id === b.id);
+
+        if (aIndex !== -1 && bIndex !== -1) {
+          return aIndex - bIndex;
+        }
+
+        // New messages go to the end
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+
+        return 0;
+      });
 
       console.log(`📝 Final chat history length: ${allMessages.length}`);
 

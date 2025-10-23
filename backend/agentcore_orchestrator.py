@@ -20,6 +20,7 @@ class AgentCoreOrchestrator:
         self.planner_id = os.getenv("AGENTCORE_PLANNER_AGENT_ID")
         self.planner_alias_id = os.getenv("AGENTCORE_PLANNER_ALIAS_ID")
         self.session = aioboto3.Session()
+        self.collaborator_invocation_counts = {}
 
     def _build_input_text(
         self, goal: str, user_context: Optional[Dict[str, str]] = None
@@ -66,7 +67,7 @@ class AgentCoreOrchestrator:
             "experience": user_context.get("experience") or "",
         }
 
-    def _parse_trace_event(self, event: Dict) -> Dict:
+    def _parse_trace_event(self, event: Dict, session_id: str) -> Dict:
         """Extract useful info from trace event."""
         trace_part = event.get("trace", {})
         trace_data = trace_part.get("trace", {})
@@ -77,8 +78,24 @@ class AgentCoreOrchestrator:
             f"Collaborator: {collaborator_name}" if collaborator_name else "Supervisor"
         )
 
+        # Create a unique ID for this supervisor session
+        # All subagent calls will use the same supervisor_id
+        supervisor_id = f"supervisor_{session_id}"
+
         # Extract reasoning, invocations, observations
-        result = {"agent": agent_label, "status": "progress"}  # Default status
+        result = {
+            "agent": agent_label,
+            "status": "progress",
+            "supervisor_id": supervisor_id,  # Add supervisor ID for grouping
+        }  # Default status
+
+        # Add agent_call_id for all collaborator traces
+        if (
+            collaborator_name
+            and collaborator_name in self.collaborator_invocation_counts
+        ):
+            count = self.collaborator_invocation_counts[collaborator_name]
+            result["agent_call_id"] = f"{session_id}_{collaborator_name}_{count}"
 
         if "orchestrationTrace" in trace_data:
             orch = trace_data["orchestrationTrace"]
@@ -93,9 +110,14 @@ class AgentCoreOrchestrator:
                 inv = orch["invocationInput"]
                 if inv.get("invocationType") == "AGENT_COLLABORATOR":
                     collab_input = inv.get("agentCollaboratorInvocationInput", {})
-                    result["calling_collaborator"] = collab_input.get(
-                        "agentCollaboratorName"
-                    )
+                    collab_name = collab_input.get("agentCollaboratorName")
+
+                    # Generate unique call ID for this collaborator invocation
+                    count = self.collaborator_invocation_counts.get(collab_name, 0) + 1
+                    self.collaborator_invocation_counts[collab_name] = count
+                    result["agent_call_id"] = f"{session_id}_{collab_name}_{count}"
+
+                    result["calling_collaborator"] = collab_name
                     result["input_text"] = collab_input.get("input", {}).get("text")
                     result["status"] = "started"  # Collaborator invocation started
 
@@ -104,11 +126,21 @@ class AgentCoreOrchestrator:
                 obs = orch["observation"]
                 if obs.get("type") == "AGENT_COLLABORATOR":
                     collab_output = obs.get("agentCollaboratorInvocationOutput", {})
+                    collab_name = collab_output.get("agentCollaboratorName")
+
                     result["collaborator_response"] = {
-                        "agent": collab_output.get("agentCollaboratorName"),
+                        "agent": collab_name,
                         "output": collab_output.get("output", {}).get("text"),
                     }
                     result["status"] = "completed"  # Collaborator response received
+
+                    # Add agent_call_id for the completed collaborator
+                    if (
+                        collab_name
+                        and collab_name in self.collaborator_invocation_counts
+                    ):
+                        count = self.collaborator_invocation_counts[collab_name]
+                        result["agent_call_id"] = f"{session_id}_{collab_name}_{count}"
 
                 # Tool/Action Group invocations
                 elif obs.get("type") == "ACTION_GROUP":
@@ -194,6 +226,9 @@ class AgentCoreOrchestrator:
         user_context: Optional[Dict[str, str]] = None,
     ) -> AsyncIterator[Dict]:
         """Stream supervisor agent response as async generator."""
+        # Reset invocation counts for new request
+        self.collaborator_invocation_counts = {}
+
         input_text = self._build_input_text(goal, user_context)
 
         logger.info(f"Invoking AgentCore supervisor for session {session_id}")
@@ -226,14 +261,25 @@ class AgentCoreOrchestrator:
 
                 elif "trace" in event:
                     trace_count += 1
-                    trace_data = self._parse_trace_event(event)
+                    trace_data = self._parse_trace_event(event, session_id)
                     logger.info(
                         f"AgentCore TRACE #{trace_count}: Full trace data: {trace_data}"
                     )
-                    yield {
-                        "type": "trace",
-                        "data": trace_data,
-                        "session_id": session_id,
-                    }
+
+                    # Only yield traces that have meaningful content
+                    # Skip empty progress traces that have no reasoning, collaborator calls, or responses
+                    has_content = (
+                        "reasoning" in trace_data
+                        or "calling_collaborator" in trace_data
+                        or "collaborator_response" in trace_data
+                        or "tool_calls" in trace_data
+                    )
+
+                    if has_content:
+                        yield {
+                            "type": "trace",
+                            "data": trace_data,
+                            "session_id": session_id,
+                        }
 
             logger.info(f"Stream completed: {chunk_count} chunks, {trace_count} traces")

@@ -12,6 +12,11 @@ export interface AgentCard {
   reasoningItems: string[];
   output: string | null;
   startTime: number;
+  toolCalls?: Array<{
+    type: string;
+    name: string;
+    result: string;
+  }>;
 }
 
 interface TraceData {
@@ -28,6 +33,8 @@ interface TraceData {
     name: string;
     result: string;
   }>;
+  supervisor_id?: string;
+  agent_call_id?: string;
 }
 
 export interface PlanComplete {
@@ -66,9 +73,10 @@ export const useSSE = (): UseSSEReturn => {
   // Derive runningAgents from agentCards
   const runningAgents = useMemo(() => {
     const agents: string[] = [];
-    agentCards.forEach((card, agentName) => {
+    agentCards.forEach((card) => {
       if (card.status === "working") {
-        agents.push(agentName);
+        // Use card.agent (friendly name) not the map key (call_id)
+        agents.push(card.agent);
       }
     });
     return agents;
@@ -164,11 +172,12 @@ export const useSSE = (): UseSSEReturn => {
               // Handle collaborator completion
               if (data.collaborator_response) {
                 const agentName = data.collaborator_response.agent;
+                const cardKey = data.agent_call_id || agentName;
                 setAgentCards((prev) => {
                   const newMap = new Map(prev);
-                  const existing = newMap.get(agentName);
+                  const existing = newMap.get(cardKey);
                   if (existing) {
-                    newMap.set(agentName, {
+                    newMap.set(cardKey, {
                       ...existing,
                       status: "completed",
                       output: data.collaborator_response!.output,
@@ -186,9 +195,10 @@ export const useSSE = (): UseSSEReturn => {
               // Handle supervisor calling collaborator
               if (data.calling_collaborator) {
                 const agentName = data.calling_collaborator;
+                const cardKey = data.agent_call_id || agentName;
                 setAgentCards((prev) => {
                   const newMap = new Map(prev);
-                  newMap.set(agentName, {
+                  newMap.set(cardKey, {
                     agent: agentName,
                     status: "working",
                     reasoningItems: [`Calling ${agentName}...`],
@@ -206,13 +216,13 @@ export const useSSE = (): UseSSEReturn => {
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent || "Supervisor";
 
-                // Only create agent cards for collaborators, not for supervisor
-                if (agentName !== "Supervisor") {
+                // Group supervisor reasoning by supervisor_id, create individual cards for collaborators
+                if (agentName === "Supervisor" && data.supervisor_id) {
                   setAgentCards((prev) => {
                     const newMap = new Map(prev);
-                    const existing = newMap.get(agentName);
+                    const existing = newMap.get(data.supervisor_id);
                     if (existing) {
-                      newMap.set(agentName, {
+                      newMap.set(data.supervisor_id, {
                         ...existing,
                         reasoningItems: [
                           ...existing.reasoningItems,
@@ -220,7 +230,32 @@ export const useSSE = (): UseSSEReturn => {
                         ],
                       });
                     } else {
-                      newMap.set(agentName, {
+                      newMap.set(data.supervisor_id, {
+                        agent: "Supervisor",
+                        status: "working",
+                        reasoningItems: [data.reasoning!],
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+                    return newMap;
+                  });
+                } else if (agentName !== "Supervisor") {
+                  // Create individual cards for collaborators
+                  const cardKey = data.agent_call_id || agentName;
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(cardKey);
+                    if (existing) {
+                      newMap.set(cardKey, {
+                        ...existing,
+                        reasoningItems: [
+                          ...existing.reasoningItems,
+                          data.reasoning!,
+                        ],
+                      });
+                    } else {
+                      newMap.set(cardKey, {
                         agent: agentName,
                         status: "working",
                         reasoningItems: [data.reasoning!],
@@ -239,19 +274,18 @@ export const useSSE = (): UseSSEReturn => {
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent || "Supervisor";
 
-                // Only create agent cards for collaborators, not for supervisor
-                if (agentName !== "Supervisor") {
+                // Add each tool call as a reasoning item to maintain chronological order
+                const toolReasoningItems = data.tool_calls!.map(
+                  (tool) => `🔧 ${tool.result}`
+                );
+
+                // Group supervisor tool calls by supervisor_id, create individual cards for collaborators
+                if (agentName === "Supervisor" && data.supervisor_id) {
                   setAgentCards((prev) => {
                     const newMap = new Map(prev);
-                    const existing = newMap.get(agentName);
-
-                    // Add each tool call as a reasoning item to maintain chronological order
-                    const toolReasoningItems = data.tool_calls!.map(
-                      (tool) => `🔧 ${tool.result}`
-                    );
-
+                    const existing = newMap.get(data.supervisor_id);
                     if (existing) {
-                      newMap.set(agentName, {
+                      newMap.set(data.supervisor_id, {
                         ...existing,
                         reasoningItems: [
                           ...existing.reasoningItems,
@@ -259,7 +293,32 @@ export const useSSE = (): UseSSEReturn => {
                         ],
                       });
                     } else {
-                      newMap.set(agentName, {
+                      newMap.set(data.supervisor_id, {
+                        agent: "Supervisor",
+                        status: "working",
+                        reasoningItems: toolReasoningItems,
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+                    return newMap;
+                  });
+                } else if (agentName !== "Supervisor") {
+                  // Create individual cards for collaborators
+                  const cardKey = data.agent_call_id || agentName;
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(cardKey);
+                    if (existing) {
+                      newMap.set(cardKey, {
+                        ...existing,
+                        reasoningItems: [
+                          ...existing.reasoningItems,
+                          ...toolReasoningItems,
+                        ],
+                      });
+                    } else {
+                      newMap.set(cardKey, {
                         agent: agentName,
                         status: "working",
                         reasoningItems: toolReasoningItems,
@@ -282,15 +341,54 @@ export const useSSE = (): UseSSEReturn => {
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent;
 
-                // Only create agent cards for collaborators, not for supervisor
-                if (agentName !== "Supervisor") {
+                // Group supervisor updates by supervisor_id, create individual cards for collaborators
+                if (agentName === "Supervisor" && data.supervisor_id) {
                   setAgentCards((prev) => {
                     const newMap = new Map(prev);
-                    const existing = newMap.get(agentName);
+                    const existing = newMap.get(data.supervisor_id);
+
+                    if (existing) {
+                      // Update existing supervisor
+                      newMap.set(data.supervisor_id, {
+                        ...existing,
+                        status:
+                          data.status === "started" ||
+                          data.status === "progress"
+                            ? "working"
+                            : existing.status,
+                        reasoningItems: data.reasoning
+                          ? [...existing.reasoningItems, data.reasoning]
+                          : existing.reasoningItems,
+                      });
+                    } else {
+                      // Create new supervisor for any supervisor with progress status
+                      newMap.set(data.supervisor_id, {
+                        agent: "Supervisor",
+                        status:
+                          data.status === "started" ||
+                          data.status === "progress"
+                            ? "working"
+                            : "working",
+                        reasoningItems: data.reasoning
+                          ? [data.reasoning]
+                          : ["Working..."],
+                        output: null,
+                        startTime: Date.now(),
+                      });
+                    }
+
+                    return newMap;
+                  });
+                } else if (agentName !== "Supervisor") {
+                  // Create individual cards for collaborators
+                  const cardKey = data.agent_call_id || agentName;
+                  setAgentCards((prev) => {
+                    const newMap = new Map(prev);
+                    const existing = newMap.get(cardKey);
 
                     if (existing) {
                       // Update existing agent
-                      newMap.set(agentName, {
+                      newMap.set(cardKey, {
                         ...existing,
                         status:
                           data.status === "started" ||
@@ -303,7 +401,7 @@ export const useSSE = (): UseSSEReturn => {
                       });
                     } else {
                       // Create new agent for any agent with progress status
-                      newMap.set(agentName, {
+                      newMap.set(cardKey, {
                         agent: agentName,
                         status:
                           data.status === "started" ||
@@ -325,8 +423,19 @@ export const useSSE = (): UseSSEReturn => {
             } else if (event.type === "done") {
               setIsRunning(false);
 
-              // Don't create a Supervisor agent card - the final output should appear as regular message
-              // through responseText. Only mark existing agent cards as completed if they exist.
+              // Mark supervisor as completed using supervisor_id
+              const supervisorId = `supervisor_${sessionId}`;
+              setAgentCards((prev) => {
+                const newMap = new Map(prev);
+                const supervisor = newMap.get(supervisorId);
+                if (supervisor) {
+                  newMap.set(supervisorId, {
+                    ...supervisor,
+                    status: "completed",
+                  });
+                }
+                return newMap;
+              });
 
               // Create a mock PlanComplete result
               setResult({

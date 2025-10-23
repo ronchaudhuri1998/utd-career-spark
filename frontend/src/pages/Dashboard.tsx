@@ -4,6 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import {
   Briefcase,
   BookOpen,
   Sparkles,
@@ -239,57 +244,75 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-4 min-h-[600px] max-h-[calc(100vh-12rem)]">
-          <div className="flex-1 min-h-[400px] lg:min-h-[600px] lg:max-w-[33.333%] lg:min-w-[300px]">
-            <MainChatOverlayStreaming />
-          </div>
-          <div className="flex flex-col gap-3 flex-1 min-w-0 lg:max-w-[66.666%]">
-            <div className="flex-1 min-h-[200px]">
-              <InsightsCard
-                icon={Briefcase}
-                title="Job Market Dashboard"
-                subtitle="Roles, employers, and salary signals powering your plan"
-                items={jobMarketLines}
-                stats={jobMarketStats}
-                emptyMessage="Generate a plan to see current job market highlights."
-                navigating={() => navigate("/job-market")}
-                loading={sectionLoading.jobMarket}
-                agentName="JobMarketAgent"
-                runningAgents={runningAgents}
-              />
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="min-h-[600px] max-h-[calc(100vh-12rem)]"
+        >
+          {/* Left Panel - Chat */}
+          <ResizablePanel
+            defaultSize={33}
+            minSize={25}
+            maxSize={50}
+            className="min-w-[300px]"
+          >
+            <div className="h-full">
+              <MainChatOverlayStreaming />
             </div>
+          </ResizablePanel>
 
-            <div className="flex-1 min-h-[200px]">
-              <InsightsCard
-                icon={BookOpen}
-                title="Course Dashboard"
-                subtitle="Courses and campus resources aligned with your goal"
-                items={coursePlanLines}
-                stats={courseStats}
-                emptyMessage="Generate a plan to unlock your tailored course roadmap."
-                navigating={() => navigate("/academics")}
-                loading={sectionLoading.academics}
-                agentName="CourseCatalogAgent"
-                runningAgents={runningAgents}
-              />
-            </div>
+          {/* Resizable Handle */}
+          <ResizableHandle withHandle className="mx-2" />
 
-            <div className="flex-1 min-h-[200px]">
-              <InsightsCard
-                icon={Code}
-                title="Projects Dashboard"
-                subtitle="Portfolio projects and skill-building recommendations"
-                items={projectLines}
-                stats={projectStats}
-                emptyMessage="Generate a plan to see personalized project suggestions."
-                navigating={() => navigate("/projects")}
-                loading={sectionLoading.projects}
-                agentName="ProjectAdvisorAgent"
-                runningAgents={runningAgents}
-              />
+          {/* Right Panel - Dashboard Cards */}
+          <ResizablePanel defaultSize={67} minSize={50} maxSize={75}>
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex-1 min-h-[200px]">
+                <InsightsCard
+                  icon={Briefcase}
+                  title="Job Market Dashboard"
+                  subtitle="Roles, employers, and salary signals powering your plan"
+                  items={jobMarketLines}
+                  stats={jobMarketStats}
+                  emptyMessage="Generate a plan to see current job market highlights."
+                  navigating={() => navigate("/job-market")}
+                  loading={sectionLoading.jobMarket}
+                  agentName="JobMarketAgent"
+                  runningAgents={runningAgents}
+                />
+              </div>
+
+              <div className="flex-1 min-h-[200px]">
+                <InsightsCard
+                  icon={BookOpen}
+                  title="Course Dashboard"
+                  subtitle="Courses and campus resources aligned with your goal"
+                  items={coursePlanLines}
+                  stats={courseStats}
+                  emptyMessage="Generate a plan to unlock your tailored course roadmap."
+                  navigating={() => navigate("/academics")}
+                  loading={sectionLoading.academics}
+                  agentName="CourseCatalogAgent"
+                  runningAgents={runningAgents}
+                />
+              </div>
+
+              <div className="flex-1 min-h-[200px]">
+                <InsightsCard
+                  icon={Code}
+                  title="Projects Dashboard"
+                  subtitle="Portfolio projects and skill-building recommendations"
+                  items={projectLines}
+                  stats={projectStats}
+                  emptyMessage="Generate a plan to see personalized project suggestions."
+                  navigating={() => navigate("/projects")}
+                  loading={sectionLoading.projects}
+                  agentName="ProjectAdvisorAgent"
+                  runningAgents={runningAgents}
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </main>
 
       <OnboardingModal open={showOnboarding} onClose={handleOnboardingClose} />

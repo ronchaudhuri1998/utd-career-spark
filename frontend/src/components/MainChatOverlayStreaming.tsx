@@ -60,6 +60,11 @@ const MainChatOverlayStreaming = ({
     }
   };
 
+  const handleClearChat = () => {
+    clearHistory();
+    clearProgress();
+  };
+
   return (
     <div className={`${className} h-full min-h-[400px] max-h-[800px]`}>
       <Card className="w-full shadow-xl border-2 border-border bg-card/95 backdrop-blur-sm transition-all duration-300 h-full flex flex-col">
@@ -67,7 +72,7 @@ const MainChatOverlayStreaming = ({
           isConnected={isConnected}
           isMinimized={false}
           onToggleMinimize={() => {}}
-          onClearChat={clearHistory}
+          onClearChat={handleClearChat}
         />
         <CardContent className="flex flex-col flex-1 min-h-0 p-0">
           <div className="flex-1 overflow-hidden min-h-0">
