@@ -26,7 +26,7 @@ export function extractJobMarketStats(jobMarketText: string): StatItem[] {
   // Total jobs
   if (parsedData.listings.length > 0) {
     stats.push({
-      label: "Jobs",
+      label: "Recommended Jobs",
       value: parsedData.listings.length,
       icon: "Briefcase",
     });
