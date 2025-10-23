@@ -123,8 +123,6 @@ export async function generatePlan(
     }
   }
 
-  console.log("🌐 Making request to:", `${API_BASE_URL}/api/plan`);
-  console.log("🌐 Request payload:", payload);
 
   const response = await fetch(`${API_BASE_URL}/api/plan`, {
     method: "POST",

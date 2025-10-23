@@ -1,23 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { Message } from "@/components/chat/ChatMessage";
-import { AgentProgress, PlanComplete } from "@/hooks/useSSE";
+import { AgentCard, PlanComplete } from "@/hooks/useSSE";
 
 interface UseChatMessagesProps {
-  progress: AgentProgress[];
+  agentCards: Map<string, AgentCard>;
   result: PlanComplete | null;
   error: string | null;
   responseText?: string;
 }
 
 export const useChatMessages = ({
-  progress,
+  agentCards,
   result,
   error,
   responseText,
 }: UseChatMessagesProps) => {
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
-  const agentMessagesRef = useRef<Map<string, Message>>(new Map());
-  const processedProgressRef = useRef<Set<string>>(new Set());
   const assistantMessageIdRef = useRef<number | null>(null);
 
   // Handle response text updates (streaming assistant message)
@@ -54,120 +52,34 @@ export const useChatMessages = ({
     }
   }, [responseText]);
 
-  // Handle live agent progress updates
+  // Convert agentCards Map to Message array
   useEffect(() => {
-    if (progress.length > 0) {
-      const latestProgress = progress[progress.length - 1];
-      const agent = latestProgress.agent;
+    const messages: Message[] = [];
 
-      // Create unique key to prevent double processing in React StrictMode
-      const callId = latestProgress.call_id || "no-call-id";
-      const progressKey = `${latestProgress.agent}-${callId}-${latestProgress.event}-${latestProgress.timestamp}`;
+    agentCards.forEach((card, agentName) => {
+      const displayText = card.reasoningItems[0] || "Working...";
+      const status = card.status === "completed" ? "completed" : "progress";
 
-      if (processedProgressRef.current.has(progressKey)) {
-        console.log("🔄 Skipping already processed progress:", progressKey);
-        return;
-      }
-
-      processedProgressRef.current.add(progressKey);
-
-      console.log("🔄 Processing progress:", {
-        agent: latestProgress.agent,
-        call_id: latestProgress.call_id,
-        event: latestProgress.event,
-        status: latestProgress.status,
-        completed: latestProgress.completed,
+      messages.push({
+        id: card.startTime,
+        text: displayText,
+        isUser: false,
+        meta: {
+          agent: agentName,
+          call_id: agentName,
+          event: displayText,
+          output: card.output,
+          status: status,
+          progressUpdates: card.reasoningItems,
+        },
       });
+    });
 
-      setChatHistory((prev) => {
-        // Check if we already have a message for this agent call (using call_id)
-        const callId = latestProgress.call_id || "no-call-id";
-        const existingMessageIndex = prev.findIndex(
-          (msg) =>
-            msg.meta?.agent === agent &&
-            (msg.meta?.call_id || "no-call-id") === callId &&
-            !msg.isUser
-        );
-
-        console.log("🔍 Message lookup:", {
-          agent,
-          call_id: latestProgress.call_id,
-          callId,
-          existingMessageIndex,
-          totalMessages: prev.length,
-          existingMessage:
-            existingMessageIndex >= 0 ? prev[existingMessageIndex] : null,
-        });
-
-        let updatedMessage: Message;
-
-        if (existingMessageIndex >= 0) {
-          // Update existing message
-          const existingMessage = prev[existingMessageIndex];
-
-          // Always allow status updates, including progress -> completed transitions
-          const progressUpdates = existingMessage.meta?.progressUpdates || [];
-
-          // Add new progress update if it's different from the last one
-          if (latestProgress.event !== existingMessage.text) {
-            progressUpdates.push(latestProgress.event);
-          }
-
-          updatedMessage = {
-            ...existingMessage,
-            text: latestProgress.event,
-            meta: {
-              ...existingMessage.meta,
-              call_id: callId,
-              event: latestProgress.event,
-              output: latestProgress.output,
-              status:
-                latestProgress.status ||
-                (latestProgress.completed ? "completed" : "progress"),
-              progressUpdates: progressUpdates,
-            },
-          };
-        } else {
-          // Create new message for this agent
-          updatedMessage = {
-            id: Date.now() + parseInt(latestProgress.timestamp),
-            text: latestProgress.event,
-            isUser: false,
-            meta: {
-              agent: latestProgress.agent,
-              call_id: callId,
-              event: latestProgress.event,
-              output: latestProgress.output,
-              status:
-                latestProgress.status ||
-                (latestProgress.completed ? "completed" : "progress"),
-              progressUpdates: [],
-            },
-          };
-        }
-
-        // Update the message in the array
-        const newHistory = [...prev];
-        if (existingMessageIndex >= 0) {
-          newHistory[existingMessageIndex] = updatedMessage;
-          console.log("✅ Updated existing message:", {
-            agent: updatedMessage.meta?.agent,
-            call_id: updatedMessage.meta?.call_id,
-            status: updatedMessage.meta?.status,
-          });
-        } else {
-          newHistory.push(updatedMessage);
-          console.log("🆕 Created new message:", {
-            agent: updatedMessage.meta?.agent,
-            call_id: updatedMessage.meta?.call_id,
-            status: updatedMessage.meta?.status,
-          });
-        }
-
-        return newHistory;
-      });
-    }
-  }, [progress]);
+    setChatHistory((prev) => {
+      const userMessages = prev.filter((msg) => msg.isUser);
+      return [...userMessages, ...messages];
+    });
+  }, [agentCards]);
 
   // Collaborator responses are now handled in useSSE.ts and passed as progress events
 
@@ -205,8 +117,6 @@ export const useChatMessages = ({
 
   const clearHistory = () => {
     setChatHistory([]);
-    agentMessagesRef.current.clear();
-    processedProgressRef.current.clear();
     assistantMessageIdRef.current = null;
   };
 

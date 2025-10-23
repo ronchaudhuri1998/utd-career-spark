@@ -92,23 +92,26 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
           <AccordionItem value="details" className="border-none">
             <AccordionTrigger className="py-2 px-0 hover:no-underline">
               <p className="text-foreground whitespace-pre-wrap leading-relaxed text-left">
-                {message.text}
+                {message.text.length > 100
+                  ? `${message.text.slice(0, 100)}...`
+                  : message.text}
               </p>
             </AccordionTrigger>
             <AccordionContent className="pt-2">
               <div className="space-y-2">
-                {!isCompleted && hasProgressUpdates && (
+                {hasProgressUpdates && (
                   <div>
-                    <p className="font-medium text-sm mb-2">
-                      Progress Updates:
-                    </p>
+                    <p className="font-medium text-sm mb-2">Reasoning:</p>
                     {message.meta.progressUpdates.map((update, index) => (
-                      <p key={index}>{update}</p>
+                      <p key={index} className="whitespace-pre-wrap">
+                        {update}
+                      </p>
                     ))}
                   </div>
                 )}
                 {isCompleted && hasOutput && (
                   <div>
+                    <p className="font-medium text-sm mb-2">Final Output:</p>
                     <p className="whitespace-pre-wrap">{message.meta.output}</p>
                   </div>
                 )}

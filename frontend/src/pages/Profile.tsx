@@ -82,31 +82,6 @@ const Profile = () => {
     navigate("/dashboard");
   };
 
-  const handleDebug = () => {
-    console.log("🔍 Full Profile Page Info:");
-    console.log("📊 User Data:", userData);
-    console.log("✏️ Edit Data:", editData);
-    console.log("🎯 Is Editing:", isEditing);
-    console.log("🆔 Session ID:", userData);
-    console.log("📝 Skills:", userData.skills);
-    console.log("💼 Experience:", userData.experience);
-    console.log("🎓 Academic Info:", {
-      major: userData.major,
-      gpa: userData.gpa,
-      coursesTaken: userData.coursesTaken,
-      graduationYear: userData.graduationYear,
-    });
-    console.log("👤 Personal Info:", {
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      location: userData.location,
-    });
-    console.log("🎯 Career Goal:", userData.careerGoal);
-    console.log("📚 Student Year:", userData.studentYear);
-    console.log("⏰ Time Commitment:", userData.timeCommitment);
-    console.log("✅ Is Onboarded:", userData.isOnboarded);
-  };
 
   // Skills management
   const addSkill = () => {

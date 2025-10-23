@@ -147,13 +147,14 @@ class AgentCoreOrchestrator:
                 if "chunk" in event:
                     text = event["chunk"]["bytes"].decode("utf-8")
                     chunk_count += 1
-                    logger.debug(f"AgentCore CHUNK #{chunk_count}")
                     yield {"type": "chunk", "text": text, "session_id": session_id}
 
                 elif "trace" in event:
                     trace_count += 1
                     trace_data = self._parse_trace_event(event)
-                    logger.debug(f"AgentCore TRACE #{trace_count}")
+                    logger.info(
+                        f"AgentCore TRACE #{trace_count}: Full trace data: {trace_data}"
+                    )
                     yield {
                         "type": "trace",
                         "data": trace_data,

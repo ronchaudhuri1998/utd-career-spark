@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserData } from "@/contexts/UserDataContext";
-import { useSSE } from "@/hooks/useSSE";
+import { useSSEContext } from "@/contexts/SSEContext";
 import { useChatMessages } from "@/hooks/useChatMessages";
 import ChatHeader from "@/components/chat/ChatHeader";
 import ChatHistory from "@/components/chat/ChatHistory";
@@ -17,16 +17,16 @@ const MainChatOverlayStreaming = ({
   const {
     isConnected,
     isRunning,
-    progress,
+    agentCards,
     result,
     error,
     responseText,
     startPlan,
     clearProgress,
-  } = useSSE();
+  } = useSSEContext();
 
   const { chatHistory, addUserMessage, addErrorMessage } = useChatMessages({
-    progress,
+    agentCards,
     result,
     error,
     responseText,

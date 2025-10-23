@@ -299,32 +299,25 @@ async def api_plan_stream(request: PlanRequest):
                 event_count += 1
                 event_data = f"data: {json.dumps(event)}\n\n"
 
-                # Log different event types with appropriate detail
-                if event.get("type") == "chunk":
-                    logger.info(
-                        f"SSE Event [CHUNK #{event_count}]: {len(event.get('text', ''))} chars - '{event.get('text', '')[:50]}...'"
-                    )
-                elif event.get("type") == "trace":
+                # Log only trace events with full data and agent/subagent responses
+                if event.get("type") == "trace":
                     trace_data = event.get("data", {})
-                    agent = trace_data.get("agent", "Unknown")
-                    logger.info(f"SSE Event [TRACE #{event_count}]: Agent={agent}")
-                    if "reasoning" in trace_data:
-                        logger.info(f"  Reasoning: {trace_data['reasoning'][:100]}...")
-                    if "calling_collaborator" in trace_data:
-                        logger.info(
-                            f"  Calling collaborator: {trace_data['calling_collaborator']}"
-                        )
+                    logger.info(
+                        f"SSE Event [TRACE #{event_count}]: Full trace data: {trace_data}"
+                    )
+
+                    # Log agent/subagent responses separately
                     if "collaborator_response" in trace_data:
                         collab_resp = trace_data["collaborator_response"]
-                        collab_agent = collab_resp.get('agent', 'Unknown')
-                        collab_output = collab_resp.get('output', '')
-                        logger.info(
-                            f"  📤 Collaborator response from {collab_agent}: {len(collab_output)} chars"
-                        )
-                        logger.info(f"  📤 Response preview: {collab_output[:200]}...")
-                        logger.info(f"  📤 Full collaborator response structure: {collab_resp}")
+                        logger.info(f"Agent/Subagent Response: {collab_resp}")
+                elif event.get("type") == "chunk":
+                    # Only log chunk events if they contain agent responses
+                    pass
                 else:
-                    logger.info(f"SSE Event [UNKNOWN #{event_count}]: {event}")
+                    # Log other event types minimally
+                    logger.info(
+                        f"SSE Event [{event.get('type', 'UNKNOWN')} #{event_count}]"
+                    )
 
                 yield event_data
 

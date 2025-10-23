@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,11 +10,10 @@ import {
   User,
   Code,
   Trash2,
-  Bug,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
-import { useSSE } from "@/hooks/useSSE";
+import { useSSEContext } from "@/contexts/SSEContext";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 import OnboardingModal from "@/components/OnboardingModal";
 
@@ -133,12 +132,14 @@ const Dashboard = () => {
     agentOutputs,
     sectionLoading,
     resetUserData,
+    sessionId,
     setSessionId,
     sessionContextInitialized,
     setSessionContextInitialized,
   } = useUserData();
-  const { isConnected, isRunning, runningAgents, progress, result, error } =
-    useSSE();
+  const useSSEReturn = useSSEContext();
+  const { isConnected, isRunning, runningAgents, agentCards, result, error } =
+    useSSEReturn;
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const jobMarketLines = useMemo(
@@ -180,14 +181,6 @@ const Dashboard = () => {
     setShowOnboarding(false);
   };
 
-  const handleDebugToggle = () => {
-    setSessionContextInitialized(!sessionContextInitialized);
-    console.log(
-      "🔧 DEBUG: Toggled sessionContextInitialized to:",
-      !sessionContextInitialized
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-0 z-10">
@@ -205,14 +198,6 @@ const Dashboard = () => {
             >
               <User className="w-4 h-4 mr-2" />
               Profile & Preferences
-            </Button>
-            <Button
-              onClick={handleDebugToggle}
-              variant="outline"
-              className="rounded-full w-fit px-5"
-            >
-              <Bug className="w-4 h-4 mr-2" />
-              Sending Context: {sessionContextInitialized ? "OFF" : "ON"}
             </Button>
             <Button
               onClick={handleClearLocalStorage}
@@ -276,17 +261,6 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-
-      {/* TODO: Add AgentCore chat integration overlay
-          - Display live agent status
-          - Show conversation history from AgentCore memory
-          - Enable real-time plan generation
-          Example:
-          <AgentCoreChat 
-            sessionId={sessionId}
-            onPlanGenerate={handlePlanGenerate}
-          />
-      */}
 
       <OnboardingModal open={showOnboarding} onClose={handleOnboardingClose} />
     </div>

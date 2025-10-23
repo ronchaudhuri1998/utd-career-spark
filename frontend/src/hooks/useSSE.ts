@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   generatePlan,
   type StreamEvent,
@@ -6,23 +6,19 @@ import {
 } from "@/lib/api";
 import { useUserData, type AgentOutputs } from "@/contexts/UserDataContext";
 
-export interface AgentProgress {
+export interface AgentCard {
   agent: string;
-  call_id: string;
-  event: string;
-  output?: string;
-  timestamp: string;
-  completed?: boolean;
-  status?: "started" | "progress" | "completed";
+  status: "working" | "completed";
+  reasoningItems: string[];
+  output: string | null;
+  startTime: number;
 }
 
 interface TraceData {
   agent?: string;
-  call_id?: string;
-  event?: string;
-  reasoning?: string;
-  output?: string;
   status?: string;
+  reasoning?: string;
+  calling_collaborator?: string;
   collaborator_response?: {
     agent: string;
     output: string;
@@ -44,7 +40,7 @@ export interface UseSSEReturn {
   isConnected: boolean;
   isRunning: boolean;
   runningAgents: string[];
-  progress: AgentProgress[];
+  agentCards: Map<string, AgentCard>;
   result: PlanComplete | null;
   error: string | null;
   responseText: string;
@@ -55,13 +51,24 @@ export interface UseSSEReturn {
 export const useSSE = (): UseSSEReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [runningAgents, setRunningAgents] = useState<string[]>([]);
-  const [progress, setProgress] = useState<AgentProgress[]>([]);
+  const [agentCards, setAgentCards] = useState<Map<string, AgentCard>>(
+    new Map()
+  );
   const [result, setResult] = useState<PlanComplete | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<string>("");
 
-  const progressRef = useRef<AgentProgress[]>([]);
+  // Derive runningAgents from agentCards
+  const runningAgents = useMemo(() => {
+    const agents: string[] = [];
+    agentCards.forEach((card, agentName) => {
+      if (card.status === "working") {
+        agents.push(agentName);
+      }
+    });
+    return agents;
+  }, [agentCards]);
+
   const { setAgentOutputs, agentOutputs, userData, sessionContextInitialized } =
     useUserData();
 
@@ -100,9 +107,7 @@ export const useSSE = (): UseSSEReturn => {
       setIsRunning(true);
       setError(null);
       setResult(null);
-      setProgress([]);
-      setRunningAgents([]);
-      progressRef.current = [];
+      setAgentCards(new Map());
 
       try {
         // Build user context like runAgentWorkflow does
@@ -125,15 +130,6 @@ export const useSSE = (): UseSSEReturn => {
           contact_email: userData.email || "",
         };
 
-        // Debug logging for user context
-        console.log("🔧 USER CONTEXT DEBUG:");
-        console.log("   sessionContextInitialized:", sessionContextInitialized);
-        console.log("   userData.name:", userData.name);
-        console.log("   userData.email:", userData.email);
-        console.log("   userData.major:", userData.major);
-        console.log("   Built extras:", extras);
-        console.log("   Will send context:", !sessionContextInitialized);
-
         const response = await generatePlan(
           goal,
           sessionId,
@@ -148,83 +144,155 @@ export const useSSE = (): UseSSEReturn => {
                 return prev + event.text;
               });
             } else if (event.type === "trace" && event.data) {
-              // Trace event - agent progress
-              const traceData = event.data as TraceData;
+              const data = event.data as TraceData;
 
-              // Extract collaborator response text from trace events
+              // Skip empty progress events (no reasoning, no collaborator_response, no agent)
               if (
-                traceData.collaborator_response &&
-                traceData.collaborator_response.output
+                !data.reasoning &&
+                !data.collaborator_response &&
+                !data.calling_collaborator &&
+                !data.agent
               ) {
-                const collaboratorText = traceData.collaborator_response.output;
-                const agent =
-                  traceData.collaborator_response.agent || "Unknown";
-
-                // Update dashboard data immediately with collaborator response
-                updateDashboardOnAgentComplete(agent, collaboratorText);
-
-                // Add collaborator response to the progress data so useChatMessages can handle it
-                const collaboratorProgress: AgentProgress = {
-                  agent: agent,
-                  call_id: "collaborator-response",
-                  event: "Collaborator response received",
-                  output: collaboratorText,
-                  timestamp: new Date().toISOString(),
-                  completed: true,
-                  status: "completed",
-                };
-
-                const newProgress = [
-                  ...progressRef.current,
-                  collaboratorProgress,
-                ];
-                progressRef.current = newProgress;
-                setProgress(newProgress);
+                return;
               }
 
-              // Convert trace data to AgentProgress format
-              const agentProgress: AgentProgress = {
-                agent: traceData.agent || "Unknown",
-                call_id: traceData.call_id || "no-call-id",
-                event:
-                  traceData.event || traceData.reasoning || "Processing...",
-                output: traceData.output,
-                timestamp: new Date().toISOString(),
-                completed: traceData.status === "completed",
-                status:
-                  (traceData.status as "started" | "progress" | "completed") ||
-                  "progress",
-              };
-
-              // Add to progress
-              const newProgress = [...progressRef.current, agentProgress];
-              progressRef.current = newProgress;
-              setProgress(newProgress);
-
-              // Handle agent status changes
-              const agent = agentProgress.agent;
-
-              if (agentProgress.status === "started") {
-                setRunningAgents((prev) => {
-                  if (!prev.includes(agent)) {
-                    return [...prev, agent];
+              // Handle collaborator completion
+              if (data.collaborator_response) {
+                const agentName = data.collaborator_response.agent;
+                setAgentCards((prev) => {
+                  const newMap = new Map(prev);
+                  const existing = newMap.get(agentName);
+                  if (existing) {
+                    newMap.set(agentName, {
+                      ...existing,
+                      status: "completed",
+                      output: data.collaborator_response!.output,
+                    });
                   }
-                  return prev;
+                  return newMap;
                 });
-              } else if (
-                agentProgress.status === "completed" ||
-                agentProgress.completed
-              ) {
-                setRunningAgents((prev) => prev.filter((a) => a !== agent));
+                updateDashboardOnAgentComplete(
+                  agentName,
+                  data.collaborator_response.output
+                );
+                return;
+              }
 
-                // Update dashboard data when agent completes
-                if (agentProgress.output) {
-                  updateDashboardOnAgentComplete(agent, agentProgress.output);
-                }
+              // Handle supervisor calling collaborator
+              if (data.calling_collaborator) {
+                const agentName = data.calling_collaborator;
+                setAgentCards((prev) => {
+                  const newMap = new Map(prev);
+                  newMap.set(agentName, {
+                    agent: agentName,
+                    status: "working",
+                    reasoningItems: [`Calling ${agentName}...`],
+                    output: null,
+                    startTime: Date.now(),
+                  });
+                  return newMap;
+                });
+                return;
+              }
+
+              // Handle reasoning updates (supervisor or collaborator)
+              if (data.reasoning) {
+                const agentName = data.agent?.includes("Collaborator:")
+                  ? data.agent.replace("Collaborator: ", "")
+                  : data.agent || "Supervisor";
+
+                setAgentCards((prev) => {
+                  const newMap = new Map(prev);
+                  const existing = newMap.get(agentName);
+                  if (existing) {
+                    newMap.set(agentName, {
+                      ...existing,
+                      reasoningItems: [
+                        ...existing.reasoningItems,
+                        data.reasoning!,
+                      ],
+                    });
+                  } else {
+                    newMap.set(agentName, {
+                      agent: agentName,
+                      status: "working",
+                      reasoningItems: [data.reasoning!],
+                      output: null,
+                      startTime: Date.now(),
+                    });
+                  }
+                  return newMap;
+                });
+              }
+
+              // Handle basic agent status updates (what the backend actually sends)
+              if (
+                data.agent &&
+                !data.collaborator_response &&
+                !data.calling_collaborator
+              ) {
+                const agentName = data.agent.includes("Collaborator:")
+                  ? data.agent.replace("Collaborator: ", "")
+                  : data.agent;
+                setAgentCards((prev) => {
+                  const newMap = new Map(prev);
+                  const existing = newMap.get(agentName);
+
+                  if (existing) {
+                    // Update existing agent
+                    newMap.set(agentName, {
+                      ...existing,
+                      status:
+                        data.status === "started" || data.status === "progress"
+                          ? "working"
+                          : existing.status,
+                      reasoningItems: data.reasoning
+                        ? [...existing.reasoningItems, data.reasoning]
+                        : existing.reasoningItems,
+                    });
+                  } else {
+                    // Create new agent for any agent with progress status
+                    newMap.set(agentName, {
+                      agent: agentName,
+                      status:
+                        data.status === "started" || data.status === "progress"
+                          ? "working"
+                          : "working",
+                      reasoningItems: data.reasoning
+                        ? [data.reasoning]
+                        : ["Working..."],
+                      output: null,
+                      startTime: Date.now(),
+                    });
+                  }
+
+                  return newMap;
+                });
               }
             } else if (event.type === "done") {
               setIsRunning(false);
-              setRunningAgents([]);
+
+              // Mark Supervisor as completed
+              setAgentCards((prev) => {
+                const newMap = new Map(prev);
+                const supervisor = newMap.get("Supervisor");
+                if (supervisor) {
+                  newMap.set("Supervisor", {
+                    ...supervisor,
+                    status: "completed",
+                  });
+                } else {
+                  // Create Supervisor card if it doesn't exist (in case no reasoning was sent)
+                  newMap.set("Supervisor", {
+                    agent: "Supervisor",
+                    status: "completed",
+                    reasoningItems: ["Plan generation completed"],
+                    output: null,
+                    startTime: Date.now(),
+                  });
+                }
+                return newMap;
+              });
 
               // Create a mock PlanComplete result
               setResult({
@@ -246,19 +314,32 @@ export const useSSE = (): UseSSEReturn => {
         console.error("Plan generation failed:", err);
         setError(err instanceof Error ? err.message : "Unknown error occurred");
         setIsRunning(false);
-        setRunningAgents([]);
       }
     },
-    [updateDashboardOnAgentComplete, isConnected, isRunning]
+    [
+      updateDashboardOnAgentComplete,
+      sessionContextInitialized,
+      userData.careerGoal,
+      userData.coursesTaken,
+      userData.email,
+      userData.experience,
+      userData.gpa,
+      userData.graduationYear,
+      userData.location,
+      userData.major,
+      userData.name,
+      userData.phone,
+      userData.skills,
+      userData.studentYear,
+      userData.timeCommitment,
+    ]
   );
 
   const clearProgress = useCallback(() => {
-    setProgress([]);
+    setAgentCards(new Map());
     setResult(null);
     setError(null);
-    setRunningAgents([]);
     setResponseText("");
-    progressRef.current = [];
   }, []);
 
   // Set connected to true when hook is used (SSE is always available)
@@ -270,7 +351,7 @@ export const useSSE = (): UseSSEReturn => {
     isConnected,
     isRunning,
     runningAgents,
-    progress,
+    agentCards,
     result,
     error,
     responseText,
