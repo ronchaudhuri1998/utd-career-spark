@@ -10,6 +10,7 @@ import {
   User,
   Code,
   Trash2,
+  Bug,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
@@ -133,6 +134,8 @@ const Dashboard = () => {
     sectionLoading,
     resetUserData,
     setSessionId,
+    sessionContextInitialized,
+    setSessionContextInitialized,
   } = useUserData();
   const { isConnected, isRunning, runningAgents, progress, result, error } =
     useSSE();
@@ -177,6 +180,14 @@ const Dashboard = () => {
     setShowOnboarding(false);
   };
 
+  const handleDebugToggle = () => {
+    setSessionContextInitialized(!sessionContextInitialized);
+    console.log(
+      "🔧 DEBUG: Toggled sessionContextInitialized to:",
+      !sessionContextInitialized
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <header className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-0 z-10">
@@ -194,6 +205,14 @@ const Dashboard = () => {
             >
               <User className="w-4 h-4 mr-2" />
               Profile & Preferences
+            </Button>
+            <Button
+              onClick={handleDebugToggle}
+              variant="outline"
+              className="rounded-full w-fit px-5"
+            >
+              <Bug className="w-4 h-4 mr-2" />
+              Sending Context: {sessionContextInitialized ? "OFF" : "ON"}
             </Button>
             <Button
               onClick={handleClearLocalStorage}

@@ -106,6 +106,8 @@ interface UserDataContextType {
   ) => void;
   sessionId: string;
   setSessionId: (id: string) => void;
+  sessionContextInitialized: boolean;
+  setSessionContextInitialized: (initialized: boolean) => void;
   runAgentWorkflow: (
     goal: string,
     details?: Partial<{
@@ -326,6 +328,15 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         contact_email: details?.contactEmail ?? userData.email ?? "",
       };
 
+      // Debug logging
+      console.log("🔧 FRONTEND DEBUG:");
+      console.log("   sessionContextInitialized:", sessionContextInitialized);
+      console.log("   sessionId:", sessionId);
+      console.log("   userData.name:", userData.name);
+      console.log("   userData.email:", userData.email);
+      console.log("   userData.major:", userData.major);
+      console.log("   Built extras:", extras);
+
       // Only send context on first message
       if (!sessionContextInitialized) {
         console.log("🔧 FRONTEND: Sending full user context to backend:");
@@ -387,6 +398,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         setAgentOutputs,
         sessionId,
         setSessionId,
+        sessionContextInitialized,
+        setSessionContextInitialized,
         runAgentWorkflow,
         resetAgentOutputs,
       }}
