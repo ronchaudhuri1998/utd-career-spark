@@ -7,11 +7,6 @@ import React, {
   useCallback,
 } from "react";
 import { toast } from "sonner";
-import {
-  generatePlan,
-  AgentWorkflowResponse,
-  PlanRequestExtras,
-} from "@/lib/api";
 
 export interface UserExperience {
   title: string;
@@ -108,16 +103,6 @@ interface UserDataContextType {
   setSessionId: (id: string) => void;
   sessionContextInitialized: boolean;
   setSessionContextInitialized: (initialized: boolean) => void;
-  runAgentWorkflow: (
-    goal: string,
-    details?: Partial<{
-      studentYear: string;
-      coursesTaken: string;
-      about: string;
-      timeCommitment: string;
-      contactEmail: string;
-    }>
-  ) => Promise<AgentWorkflowResponse | null>;
   resetAgentOutputs: () => void;
 }
 
@@ -281,109 +266,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     setSessionIdState(id);
   };
 
-  const runAgentWorkflow = async (
-    goal: string,
-    details?: Partial<{
-      studentYear: string;
-      coursesTaken: string;
-      about: string;
-      timeCommitment: string;
-      contactEmail: string;
-    }>
-  ): Promise<AgentWorkflowResponse | null> => {
-    if (!goal.trim()) {
-      toast.error("Please provide a goal before running the agents.");
-      return null;
-    }
-
-    setSectionLoadingState({
-      jobMarket: true,
-      projects: true,
-      academics: true,
-    });
-
-    try {
-      // Build complete user context
-      const extras: PlanRequestExtras = {
-        user_name: userData.name,
-        user_email: userData.email,
-        user_phone: userData.phone,
-        user_location: userData.location,
-        user_major: userData.major,
-        graduation_year: userData.graduationYear,
-        gpa: userData.gpa,
-        career_goal: userData.careerGoal,
-        student_year:
-          details?.studentYear ??
-          userData.studentYear ??
-          userData.graduationYear ??
-          "",
-        courses_taken: details?.coursesTaken ?? userData.coursesTaken ?? "",
-        time_commitment:
-          details?.timeCommitment ?? userData.timeCommitment ?? "",
-        skills: userData.skills.join(", "),
-        experience: JSON.stringify(userData.experience),
-        // Legacy fields for backward compatibility
-        about: details?.about ?? userData.careerGoal ?? "",
-        contact_email: details?.contactEmail ?? userData.email ?? "",
-      };
-
-      // Debug logging
-      console.log("🔧 FRONTEND DEBUG:");
-      console.log("   sessionContextInitialized:", sessionContextInitialized);
-      console.log("   sessionId:", sessionId);
-      console.log("   userData.name:", userData.name);
-      console.log("   userData.email:", userData.email);
-      console.log("   userData.major:", userData.major);
-      console.log("   Built extras:", extras);
-
-      // Only send context on first message
-      if (!sessionContextInitialized) {
-        console.log("🔧 FRONTEND: Sending full user context to backend:");
-        console.log("   User context:", extras);
-      } else {
-        console.log(
-          "🔧 FRONTEND: Skipping user context (already sent for this session)"
-        );
-      }
-
-      const response = await generatePlan(
-        goal,
-        sessionId || undefined,
-        sessionContextInitialized ? undefined : extras
-      );
-
-      // Mark context as sent
-      setSessionContextInitialized(true);
-      setAgentOutputs({
-        finalPlan: response.final_plan ?? "",
-        jobMarket: response.job_market ?? "",
-        coursePlan: response.course_plan ?? "",
-        projectRecommendations: response.project_recommendations ?? "",
-        trace: response.trace ?? [],
-        agentcore: response.agentcore ?? {
-          available: false,
-          status: "AgentCore response unavailable.",
-        },
-      });
-      if (response.session_id) {
-        setSessionIdState(response.session_id);
-      }
-      return response;
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Agent workflow failed";
-      toast.error(message);
-      throw error;
-    } finally {
-      setSectionLoadingState({
-        jobMarket: false,
-        projects: false,
-        academics: false,
-      });
-    }
-  };
-
   return (
     <UserDataContext.Provider
       value={{
@@ -400,7 +282,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         setSessionId,
         sessionContextInitialized,
         setSessionContextInitialized,
-        runAgentWorkflow,
         resetAgentOutputs,
       }}
     >

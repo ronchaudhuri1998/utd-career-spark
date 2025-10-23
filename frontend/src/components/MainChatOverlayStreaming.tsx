@@ -47,15 +47,7 @@ const MainChatOverlayStreaming = ({
     clearProgress();
 
     try {
-      const extraContext = {
-        student_year: userData.studentYear || userData.graduationYear || "",
-        courses_taken: userData.coursesTaken || "",
-        about: userData.bio || "",
-        time_commitment: userData.timeCommitment || "",
-        contact_email: userData.email || "",
-      };
-
-      startPlan(trimmed, sessionId, extraContext);
+      startPlan(trimmed, sessionId);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to start plan";

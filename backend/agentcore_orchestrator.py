@@ -21,8 +21,30 @@ class AgentCoreOrchestrator:
         self.planner_alias_id = os.getenv("AGENTCORE_PLANNER_ALIAS_ID")
         self.session = aioboto3.Session()
 
-    def _build_input_text(self, goal: str) -> str:
-        """Build input text for the agent."""
+    def _build_input_text(
+        self, goal: str, user_context: Optional[Dict[str, str]] = None
+    ) -> str:
+        """Build input text with user context for the agent."""
+        # Start with user context if provided
+        if user_context:
+            context_parts = []
+
+            # Add user profile info
+            if user_context.get("user_name"):
+                context_parts.append(f"Student Name: {user_context['user_name']}")
+            if user_context.get("user_major"):
+                context_parts.append(f"Major: {user_context['user_major']}")
+            if user_context.get("graduation_year"):
+                context_parts.append(
+                    f"Expected Graduation: {user_context['graduation_year']}"
+                )
+            if user_context.get("skills"):
+                context_parts.append(f"Current Skills: {user_context['skills']}")
+
+            # Build message with context
+            context_str = "\n".join(context_parts)
+            return f"{context_str}\n\nStudent Request: {goal}"
+
         return f"Create a comprehensive career plan for: {goal}"
 
     def _build_session_attributes(self, user_context: Dict[str, str]) -> Dict[str, str]:
@@ -97,19 +119,9 @@ class AgentCoreOrchestrator:
         user_context: Optional[Dict[str, str]] = None,
     ) -> AsyncIterator[Dict]:
         """Stream supervisor agent response as async generator."""
-        input_text = self._build_input_text(goal)
+        input_text = self._build_input_text(goal, user_context)
 
         logger.info(f"Invoking AgentCore supervisor for session {session_id}")
-
-        # Build sessionState if user context is provided
-        session_state = None
-        if user_context:
-            session_attributes = self._build_session_attributes(user_context)
-            session_state = {"sessionAttributes": session_attributes}
-            logger.info(f"Including sessionAttributes for session {session_id}")
-            print(f"🔧 AGENTCORE: Sending sessionAttributes to AWS Bedrock:")
-            for key, value in session_attributes.items():
-                print(f"   {key}: {value}")
 
         # Create async Bedrock client
         async with self.session.client(
@@ -124,10 +136,6 @@ class AgentCoreOrchestrator:
                 "inputText": input_text,
                 "enableTrace": True,
             }
-
-            # Add sessionState if we have user context
-            if session_state:
-                invoke_params["sessionState"] = session_state
 
             response = await runtime_client.invoke_agent(**invoke_params)
 

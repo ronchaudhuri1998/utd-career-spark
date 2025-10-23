@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { generatePlan, type StreamEvent } from "@/lib/api";
+import {
+  generatePlan,
+  type StreamEvent,
+  type PlanRequestExtras,
+} from "@/lib/api";
 import { useUserData, type AgentOutputs } from "@/contexts/UserDataContext";
 
 export interface AgentProgress {
@@ -58,69 +62,32 @@ export const useSSE = (): UseSSEReturn => {
   const [responseText, setResponseText] = useState<string>("");
 
   const progressRef = useRef<AgentProgress[]>([]);
-  const { setAgentOutputs, agentOutputs } = useUserData();
+  const { setAgentOutputs, agentOutputs, userData, sessionContextInitialized } =
+    useUserData();
 
   // Function to update dashboard data when specific agents complete
   const updateDashboardOnAgentComplete = useCallback(
     (agent: string, output: string) => {
-      console.log(`🎯 Agent ${agent} completed, updating dashboard data`, {
-        agent,
-        outputLength: output.length,
-        outputPreview:
-          output.substring(0, 100) + (output.length > 100 ? "..." : ""),
-      });
-
       // Use functional state update to get the latest state
       setAgentOutputs((prevOutputs: AgentOutputs) => {
-        console.log(`🔍 Current state before update for ${agent}:`, {
-          jobMarketLength: prevOutputs.jobMarket.length,
-          coursePlanLength: prevOutputs.coursePlan.length,
-          projectRecommendationsLength:
-            prevOutputs.projectRecommendations.length,
-          finalPlanLength: prevOutputs.finalPlan.length,
-        });
-
         const updatedOutputs = { ...prevOutputs };
 
         switch (agent) {
           case "JobMarketAgent":
             updatedOutputs.jobMarket = output;
-            console.log(
-              `✅ Updated JobMarketAgent output in state (${output.length} chars)`
-            );
             break;
           case "CourseCatalogAgent":
             updatedOutputs.coursePlan = output;
-            console.log(
-              `✅ Updated CourseCatalogAgent output in state (${output.length} chars)`
-            );
             break;
           case "ProjectAdvisorAgent":
             updatedOutputs.projectRecommendations = output;
-            console.log(
-              `✅ Updated ProjectAdvisorAgent output in state (${output.length} chars)`
-            );
             break;
           case "CareerPlannerAgent":
             updatedOutputs.finalPlan = output;
-            console.log(
-              `✅ Updated CareerPlannerAgent output in state (${output.length} chars)`
-            );
             break;
           default:
-            console.log(
-              `⚠️ Unknown agent: ${agent}, skipping dashboard update`
-            );
             return prevOutputs; // Return unchanged state for unknown agents
         }
-
-        console.log(`📦 State update applied for ${agent}:`, {
-          jobMarketLength: updatedOutputs.jobMarket.length,
-          coursePlanLength: updatedOutputs.coursePlan.length,
-          projectRecommendationsLength:
-            updatedOutputs.projectRecommendations.length,
-          finalPlanLength: updatedOutputs.finalPlan.length,
-        });
 
         return updatedOutputs;
       });
@@ -138,72 +105,51 @@ export const useSSE = (): UseSSEReturn => {
       progressRef.current = [];
 
       try {
-        console.log("🚀 Starting plan generation with SSE...", {
-          goal,
-          sessionId,
-          isConnected,
-          isRunning,
-        });
+        // Build user context like runAgentWorkflow does
+        const extras: PlanRequestExtras = {
+          user_name: userData.name,
+          user_email: userData.email,
+          user_phone: userData.phone,
+          user_location: userData.location,
+          user_major: userData.major,
+          graduation_year: userData.graduationYear,
+          gpa: userData.gpa,
+          career_goal: userData.careerGoal,
+          student_year: userData.studentYear || userData.graduationYear || "",
+          courses_taken: userData.coursesTaken || "",
+          time_commitment: userData.timeCommitment || "",
+          skills: userData.skills.join(", "),
+          experience: JSON.stringify(userData.experience),
+          // Legacy fields for backward compatibility
+          about: userData.careerGoal || "",
+          contact_email: userData.email || "",
+        };
+
+        // Debug logging for user context
+        console.log("🔧 USER CONTEXT DEBUG:");
+        console.log("   sessionContextInitialized:", sessionContextInitialized);
+        console.log("   userData.name:", userData.name);
+        console.log("   userData.email:", userData.email);
+        console.log("   userData.major:", userData.major);
+        console.log("   Built extras:", extras);
+        console.log("   Will send context:", !sessionContextInitialized);
 
         const response = await generatePlan(
           goal,
           sessionId,
-          undefined, // extras
+          sessionContextInitialized ? undefined : extras, // Only send context on first message
           (event: StreamEvent) => {
-            console.log("📡 SSE Event received:", {
-              type: event.type,
-              hasText: !!event.text,
-              hasData: !!event.data,
-              hasSessionId: !!event.session_id,
-              hasMessage: !!event.message,
-              textLength: event.text?.length || 0,
-              dataKeys: event.data
-                ? Object.keys(event.data as Record<string, unknown>)
-                : [],
-              fullEvent: event,
-            });
-
             // Handle different event types
             if (event.type === "session" && event.session_id) {
-              console.log("📋 SESSION EVENT:", {
-                sessionId: event.session_id,
-                eventType: event.type,
-              });
+              // Session event
             } else if (event.type === "chunk" && event.text) {
               // Text chunk - this is the main response
-              console.log("📝 CHUNK EVENT:", {
-                textLength: event.text.length,
-                textPreview:
-                  event.text.substring(0, 100) +
-                  (event.text.length > 100 ? "..." : ""),
-                fullText: event.text,
-              });
               setResponseText((prev) => {
-                const newText = prev + event.text;
-                console.log("📝 RESPONSE TEXT UPDATED:", {
-                  previousLength: prev.length,
-                  newChunkLength: event.text.length,
-                  newTotalLength: newText.length,
-                  newTextPreview:
-                    newText.substring(0, 100) +
-                    (newText.length > 100 ? "..." : ""),
-                });
-                return newText;
+                return prev + event.text;
               });
             } else if (event.type === "trace" && event.data) {
               // Trace event - agent progress
               const traceData = event.data as TraceData;
-              console.log("🔍 TRACE EVENT:", {
-                agent: traceData.agent,
-                callId: traceData.call_id,
-                event: traceData.event,
-                reasoning: traceData.reasoning,
-                hasCollaboratorResponse: !!traceData.collaborator_response,
-                collaboratorAgent: traceData.collaborator_response?.agent,
-                collaboratorOutputLength:
-                  traceData.collaborator_response?.output?.length || 0,
-                fullTraceData: traceData,
-              });
 
               // Extract collaborator response text from trace events
               if (
@@ -213,21 +159,9 @@ export const useSSE = (): UseSSEReturn => {
                 const collaboratorText = traceData.collaborator_response.output;
                 const agent =
                   traceData.collaborator_response.agent || "Unknown";
-                console.log("📝 COLLABORATOR RESPONSE FOUND:", {
-                  agent,
-                  textLength: collaboratorText.length,
-                  textPreview: collaboratorText.substring(0, 100) + "...",
-                  fullText: collaboratorText,
-                });
 
                 // Update dashboard data immediately with collaborator response
-                console.log(
-                  `🔄 Calling updateDashboardOnAgentComplete for ${agent}...`
-                );
                 updateDashboardOnAgentComplete(agent, collaboratorText);
-                console.log(
-                  `✅ updateDashboardOnAgentComplete called for ${agent}`
-                );
 
                 // Add collaborator response to the progress data so useChatMessages can handle it
                 const collaboratorProgress: AgentProgress = {
@@ -240,22 +174,12 @@ export const useSSE = (): UseSSEReturn => {
                   status: "completed",
                 };
 
-                console.log(
-                  "📝 CREATING COLLABORATOR PROGRESS:",
-                  collaboratorProgress
-                );
-
                 const newProgress = [
                   ...progressRef.current,
                   collaboratorProgress,
                 ];
                 progressRef.current = newProgress;
                 setProgress(newProgress);
-
-                console.log("📝 PROGRESS UPDATED:", {
-                  totalProgress: newProgress.length,
-                  latestProgress: newProgress[newProgress.length - 1],
-                });
               }
 
               // Convert trace data to AgentProgress format
@@ -272,17 +196,10 @@ export const useSSE = (): UseSSEReturn => {
                   "progress",
               };
 
-              console.log("📝 CREATING AGENT PROGRESS:", agentProgress);
-
               // Add to progress
               const newProgress = [...progressRef.current, agentProgress];
               progressRef.current = newProgress;
               setProgress(newProgress);
-
-              console.log("📝 AGENT PROGRESS UPDATED:", {
-                totalProgress: newProgress.length,
-                latestProgress: newProgress[newProgress.length - 1],
-              });
 
               // Handle agent status changes
               const agent = agentProgress.agent;
@@ -306,11 +223,6 @@ export const useSSE = (): UseSSEReturn => {
                 }
               }
             } else if (event.type === "done") {
-              console.log("✅ DONE EVENT:", {
-                eventType: event.type,
-                goal,
-                sessionId: sessionId || "unknown",
-              });
               setIsRunning(false);
               setRunningAgents([]);
 
@@ -326,24 +238,12 @@ export const useSSE = (): UseSSEReturn => {
                 },
               });
             } else if (event.type === "error") {
-              console.log("❌ ERROR EVENT:", {
-                eventType: event.type,
-                message: event.message,
-                fullEvent: event,
-              });
               throw new Error(event.message || "Unknown error occurred");
-            } else {
-              console.log("❓ UNKNOWN EVENT TYPE:", {
-                eventType: event.type,
-                fullEvent: event,
-              });
             }
           }
         );
-
-        console.log("✅ Plan generation completed successfully");
       } catch (err) {
-        console.error("❌ Plan generation failed:", err);
+        console.error("Plan generation failed:", err);
         setError(err instanceof Error ? err.message : "Unknown error occurred");
         setIsRunning(false);
         setRunningAgents([]);

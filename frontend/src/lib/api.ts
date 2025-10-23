@@ -123,7 +123,7 @@ export async function generatePlan(
     }
   }
 
-  console.log("🌐 Making SSE request to:", `${API_BASE_URL}/api/plan`);
+  console.log("🌐 Making request to:", `${API_BASE_URL}/api/plan`);
   console.log("🌐 Request payload:", payload);
 
   const response = await fetch(`${API_BASE_URL}/api/plan`, {
@@ -132,12 +132,6 @@ export async function generatePlan(
     body: JSON.stringify(payload),
   });
 
-  console.log("🌐 SSE Response status:", response.status);
-  console.log(
-    "🌐 SSE Response headers:",
-    Object.fromEntries(response.headers.entries())
-  );
-
   if (!response.ok) {
     throw new Error(`Failed to generate plan: ${response.statusText}`);
   }
@@ -145,8 +139,6 @@ export async function generatePlan(
   if (!response.body) {
     throw new Error("Response body is null");
   }
-
-  console.log("🌐 SSE Response body available, starting to read stream...");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -157,49 +149,24 @@ export async function generatePlan(
   let buffer = "";
 
   try {
-    console.log("🌐 Starting SSE stream reading loop...");
-    let chunkCount = 0;
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.log("🌐 SSE stream completed, total chunks read:", chunkCount);
         break;
       }
 
-      chunkCount++;
       const decodedChunk = decoder.decode(value, { stream: true });
-      const timestamp = new Date().toISOString();
-      console.log("🌐 SSE Chunk #" + chunkCount + " at " + timestamp + ":", {
-        length: decodedChunk.length,
-        preview:
-          decodedChunk.substring(0, 100) +
-          (decodedChunk.length > 100 ? "..." : ""),
-        fullChunk: decodedChunk,
-      });
-
       buffer += decodedChunk;
       const lines = buffer.split("\n");
 
       // Keep last incomplete line in buffer
       buffer = lines.pop() || "";
 
-      console.log("🌐 Processing lines:", lines.length, "lines from chunk");
-
       for (const line of lines) {
-        console.log("🌐 Processing line:", line);
-
         if (line.startsWith("data: ")) {
           try {
             const eventData = line.slice(6);
-            console.log("🌐 Parsing event data:", eventData);
-
             const event: StreamEvent = JSON.parse(eventData);
-            const eventTimestamp = new Date().toISOString();
-            console.log(
-              "🌐 Parsed SSE event at " + eventTimestamp + ":",
-              event
-            );
 
             if (event.type === "session" && event.session_id) {
               resultSessionId = event.session_id;
@@ -213,16 +180,11 @@ export async function generatePlan(
 
             // Call progress callback
             if (onProgress) {
-              console.log("🌐 Calling onProgress with event:", event);
               onProgress(event);
-            } else {
-              console.log("🌐 No onProgress callback provided");
             }
           } catch (e) {
-            console.warn("🌐 Failed to parse SSE event:", line, e);
+            console.warn("Failed to parse SSE event:", line, e);
           }
-        } else if (line.trim()) {
-          console.log("🌐 Non-data line:", line);
         }
       }
     }
@@ -234,7 +196,7 @@ export async function generatePlan(
     goal,
     session_id: resultSessionId,
     final_plan: fullText,
-    trace: traces,
+    trace: traces as Array<{ agent: string; event: string; output?: string }>,
   };
 }
 
