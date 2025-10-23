@@ -3,7 +3,6 @@ fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
-boto3
 aioboto3
 bedrock-agentcore
 httpx
