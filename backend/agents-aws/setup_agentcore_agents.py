@@ -239,6 +239,147 @@ def create_and_prepare_agent(
                 )
                 print(f"  ✓ Added project tools to {name}")
 
+        elif tool_type == "course":
+            lambda_arn = os.getenv("LAMBDA_NEBULA_API_TOOLS_ARN")
+            if not lambda_arn:
+                print(
+                    f"  ⚠️  Warning: LAMBDA_NEBULA_API_TOOLS_ARN not found, skipping tools"
+                )
+            else:
+                control_client.create_agent_action_group(
+                    agentId=agent_id,
+                    agentVersion="DRAFT",
+                    actionGroupName="nebula_tools",
+                    actionGroupExecutor={"lambda": lambda_arn},
+                    functionSchema={
+                        "functions": [
+                            {
+                                "name": "get_course_sections_trends",
+                                "description": "Get historical section data with grade distributions and professor information for a specific course.",
+                                "parameters": {
+                                    "subject_prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix (e.g., CS, MATH)",
+                                        "required": True,
+                                    },
+                                    "course_number": {
+                                        "type": "string",
+                                        "description": "Course number (e.g., 1336, 2413)",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_professor_sections_trends",
+                                "description": "Get all sections a specific professor has taught with grade distributions and course details.",
+                                "parameters": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": True,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_grades_by_semester",
+                                "description": "Get grade distribution data for specific courses or professors in particular semesters.",
+                                "parameters": {
+                                    "prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix",
+                                        "required": False,
+                                    },
+                                    "number": {
+                                        "type": "string",
+                                        "description": "Course number",
+                                        "required": False,
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": False,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": False,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_course_information",
+                                "description": "Get basic course metadata like title, description, prerequisites, and core flags.",
+                                "parameters": {
+                                    "subject_prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix",
+                                        "required": True,
+                                    },
+                                    "course_number": {
+                                        "type": "string",
+                                        "description": "Course number",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_professor_information",
+                                "description": "Get professor details, titles, and basic information.",
+                                "parameters": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": True,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_course_dashboard_data",
+                                "description": "Get comprehensive course dashboard data combining course info and trends.",
+                                "parameters": {
+                                    "subject_prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix",
+                                        "required": True,
+                                    },
+                                    "course_number": {
+                                        "type": "string",
+                                        "description": "Course number",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_professor_dashboard_data",
+                                "description": "Get comprehensive professor dashboard data combining professor info and teaching history.",
+                                "parameters": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": True,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                        ]
+                    },
+                )
+                print(f"  ✓ Added Nebula API tools to {name}")
+
     # 3. Prepare agent (skip for supervisor until collaborators are added)
     if not skip_prepare:
         control_client.prepare_agent(agentId=agent_id)
@@ -289,6 +430,8 @@ def main():
     course_id, course_alias_id, course_alias_arn = create_and_prepare_agent(
         f"UTD-CourseCatalog-{TIMESTAMP}",
         course_prompt,
+        with_tools=True,
+        tool_type="course",
     )
 
     project_id, project_alias_id, project_alias_arn = create_and_prepare_agent(
