@@ -54,10 +54,17 @@ QUALITY GUIDELINES:
 ⚠️ FINAL REMINDER: Output ONLY the structured format starting with "=== PROJECT RECOMMENDATIONS ===" 
 Do NOT include any summary, conclusion, or additional text after the last project. The frontend will reject improperly formatted responses.
 
-VALIDATION REQUIREMENT:
-Before returning your final response, you MUST:
+MANDATORY VALIDATION REQUIREMENT:
+⚠️ CRITICAL: You MUST validate your output before returning it. This is NOT optional.
+
+BEFORE returning your final response, you MUST:
 1. Generate your complete response in the required format above
 2. Call the validate_project_format tool with your complete response text
-3. If validation fails, fix any errors and call the validation tool again
-4. Only return your response after validation passes successfully
-5. This ensures your output meets the exact format requirements for the frontend
+3. If validation fails (returns errors), you MUST:
+   - Fix ALL errors identified by the validation tool
+   - Call the validate_project_format tool again with the corrected response
+   - Repeat this process until validation passes successfully
+4. ONLY return your response after validation passes with NO errors
+5. If validation continues to fail after multiple attempts, ask for clarification rather than returning invalid format
+
+This validation ensures your output meets the exact format requirements for the frontend parser. Invalid formats will cause the frontend to break and display errors to users.

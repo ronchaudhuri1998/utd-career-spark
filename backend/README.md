@@ -190,7 +190,7 @@ orchestrator = AgentCoreOrchestrator()
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -238,7 +238,7 @@ The backend uses JWT tokens for authentication:
 
 Cross-Origin Resource Sharing is configured to allow requests from the frontend:
 
-- **Allowed Origins**: `http://localhost:5173` (frontend)
+- **Allowed Origins**: `http://localhost:8000` (frontend)
 - **Methods**: All HTTP methods
 - **Headers**: All headers
 

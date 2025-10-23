@@ -262,7 +262,7 @@ docker-compose up --build
 |-------|-------------|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
 | **Backend** | FastAPI, Python 3.11, Uvicorn, SSE Streaming |
-| **AI/ML** | AWS Bedrock, Claude 3 Haiku, AgentCore Multi-Agent |
+| **AI/ML** | AWS Bedrock, Claude 4.5 Sonnet (Latest), AgentCore Multi-Agent |
 | **Cloud** | AWS Lambda (Python 3.11), IAM, Bedrock Runtime |
 | **Tools** | BeautifulSoup4, Requests (web scraping) |
 | **Dev Tools** | Git, npm, pip, boto3 |
