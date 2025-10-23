@@ -70,6 +70,68 @@ def delete_all_existing_agents():
         print(f"  ⚠️  Error during cleanup: {e}")
 
 
+def add_validation_tools(agent_id, tool_type):
+    """Add validation action group to agent based on tool type."""
+    validation_arns = {
+        "job": os.getenv("LAMBDA_VALIDATE_JOBMARKET_ARN"),
+        "course": os.getenv("LAMBDA_VALIDATE_COURSE_ARN"),
+        "project": os.getenv("LAMBDA_VALIDATE_PROJECT_ARN"),
+    }
+
+    validation_functions = {
+        "job": {
+            "name": "validate_job_market_format",
+            "description": "Validates job market agent output format. Call this before returning your final response to ensure it meets the required format.",
+        },
+        "course": {
+            "name": "validate_course_format",
+            "description": "Validates course catalog agent output format. Call this before returning your final response to ensure it meets the required format.",
+        },
+        "project": {
+            "name": "validate_project_format",
+            "description": "Validates project advisor agent output format. Call this before returning your final response to ensure it meets the required format.",
+        },
+    }
+
+    lambda_arn = validation_arns.get(tool_type)
+    if not lambda_arn:
+        print(
+            f"  ⚠️  Warning: Validation Lambda ARN not found for {tool_type}, skipping validation tools"
+        )
+        return
+
+    function_config = validation_functions.get(tool_type)
+    if not function_config:
+        print(f"  ⚠️  Warning: No validation function config for {tool_type}")
+        return
+
+    try:
+        control_client.create_agent_action_group(
+            agentId=agent_id,
+            agentVersion="DRAFT",
+            actionGroupName="validation_tools",
+            actionGroupExecutor={"lambda": lambda_arn},
+            functionSchema={
+                "functions": [
+                    {
+                        "name": function_config["name"],
+                        "description": function_config["description"],
+                        "parameters": {
+                            "response_text": {
+                                "type": "string",
+                                "description": "The complete response text to validate",
+                                "required": True,
+                            }
+                        },
+                    }
+                ]
+            },
+        )
+        print(f"  ✓ Added validation tools to agent")
+    except Exception as e:
+        print(f"  ⚠️  Error adding validation tools: {e}")
+
+
 def create_and_prepare_agent(
     name,
     instruction,
@@ -378,6 +440,10 @@ def create_and_prepare_agent(
                     },
                 )
                 print(f"  ✓ Added Nebula API tools to {name}")
+
+    # 2.5. Add validation tools if needed
+    if with_tools:
+        add_validation_tools(agent_id, tool_type)
 
     # 3. Prepare agent (skip for supervisor until collaborators are added)
     if not skip_prepare:

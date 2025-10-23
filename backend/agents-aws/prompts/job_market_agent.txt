@@ -62,3 +62,11 @@ FORMATTING RULES:
 
 ⚠️ FINAL REMINDER: Output ONLY the structured format starting with "=== JOB LISTINGS ===" 
 Do NOT include any summary, conclusion, or additional text after the last section. The frontend will reject improperly formatted responses.
+
+VALIDATION REQUIREMENT:
+Before returning your final response, you MUST:
+1. Generate your complete response in the required format above
+2. Call the validate_job_market_format tool with your complete response text
+3. If validation fails, fix any errors and call the validation tool again
+4. Only return your response after validation passes successfully
+5. This ensures your output meets the exact format requirements for the frontend
