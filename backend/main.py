@@ -51,6 +51,15 @@ app.add_middleware(
 orchestrator = AgentCoreOrchestrator()
 
 
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup."""
+    logger.info("UTD Career Spark API starting up...")
+    logger.info(f"AgentCore orchestrator initialized: {bool(orchestrator.planner_id)}")
+    logger.info("Application startup complete")
+
+
 # Pydantic Models
 class IntroRequest(BaseModel):
     goal: str
@@ -185,8 +194,28 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "message": "API is operational"}
+    """Health check endpoint for App Runner."""
+    try:
+        # Basic health check - verify the app is running
+        # Check if AgentCore is configured
+        agentcore_configured = bool(
+            orchestrator.planner_id and orchestrator.planner_alias_id
+        )
+
+        return {
+            "status": "healthy",
+            "message": "API is operational",
+            "agentcore_configured": agentcore_configured,
+            "timestamp": "2024-01-01T00:00:00Z",  # Static timestamp for health check
+        }
+    except Exception as e:
+        # If there's any error, return unhealthy status
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "message": f"Health check failed: {str(e)}",
+            "timestamp": "2024-01-01T00:00:00Z",
+        }
 
 
 @app.post("/api/intro")
@@ -358,6 +387,30 @@ async def api_status():
         "planner_alias_id": orchestrator.planner_alias_id,
         "region": os.getenv("AWS_REGION", "us-east-1"),
     }
+
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness check endpoint for App Runner."""
+    try:
+        # Check if all required components are ready
+        agentcore_ready = bool(
+            orchestrator.planner_id and orchestrator.planner_alias_id
+        )
+        aws_region = os.getenv("AWS_REGION")
+
+        if agentcore_ready and aws_region:
+            return {"status": "ready", "message": "All systems ready"}
+        else:
+            return {
+                "status": "not_ready",
+                "message": "Missing required configuration",
+                "agentcore_ready": agentcore_ready,
+                "aws_region": aws_region,
+            }
+    except Exception as e:
+        logger.error(f"Readiness check failed: {str(e)}")
+        return {"status": "not_ready", "message": f"Readiness check failed: {str(e)}"}
 
 
 @app.post("/api/process-career-goal")
