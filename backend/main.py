@@ -41,6 +41,15 @@ app.add_middleware(
         "http://127.0.0.1:5174",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        # Add Vercel frontend URL when deployed
+        "https://utd-career-spark.vercel.app",
+        "https://utd-career-spark-git-main-davis118s-projects.vercel.app",
+        # AWS Amplify frontend URLs
+        "https://main.d2hfp6chj715ip.amplifyapp.com",
+        "https://main.d2hfp6chj715ip.amplifyapp.com/",
+        "https://main.d2hfp6chj715ip.amplifyapp.com/dashboard",
+        # Allow all origins for development (remove in production)
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
