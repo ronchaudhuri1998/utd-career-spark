@@ -70,7 +70,11 @@ export interface ProcessCareerGoalResponse {
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
-  "https://fhvdanzd67.us-east-1.awsapprunner.com";
+  "https://backend-eu6swgj3k-davis118s-projects.vercel.app";
+
+// Debug: Log the API URL being used
+console.log("API_BASE_URL:", API_BASE_URL);
+console.log("VITE_API_URL env var:", import.meta.env.VITE_API_URL);
 
 export async function requestIntro(
   goal: string,
