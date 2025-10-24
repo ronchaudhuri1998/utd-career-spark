@@ -9,6 +9,7 @@ import json
 import os
 import uuid
 import logging
+import re
 from dotenv import load_dotenv
 
 from claude_client import claude_chat
@@ -103,6 +104,16 @@ class ProcessGoalRequest(BaseModel):
     goal: str
 
 
+class ResumeParseRequest(BaseModel):
+    resume_text: str
+    session_id: Optional[str] = None
+
+
+class ResumeParseResponse(BaseModel):
+    parsed_data: Dict[str, str]
+    session_id: str
+
+
 # Helper Functions
 def generate_session_id() -> str:
     """Generate a unique session identifier."""
@@ -188,6 +199,112 @@ def process_career_goal(natural_language_goal: str) -> str:
         ).strip()
     except Exception:
         return natural_language_goal
+
+
+def parse_resume_text(resume_text: str) -> Dict[str, str]:
+    """Parse resume text and extract comprehensive user context information."""
+    prompt = (
+        f"Parse the following resume text and extract comprehensive user context information. "
+        f"Return a JSON object with the following fields (use empty string if not found):\n"
+        f"- name: Full name\n"
+        f"- email: Email address\n"
+        f"- phone: Phone number\n"
+        f"- location: City, State or location\n"
+        f"- major: Academic major/degree\n"
+        f"- graduation_year: Expected or actual graduation year\n"
+        f"- gpa: GPA if mentioned\n"
+        f"- skills: Comma-separated list of technical and soft skills\n"
+        f"- experience: Detailed description of work experience, internships, projects, and achievements\n"
+        f"- career_goal: Career objective, professional summary, or career aspirations\n"
+        f"- courses_taken: Relevant coursework, certifications, or academic projects\n"
+        f"- bio: Professional summary, about section, or personal statement\n"
+        f"- student_year: Academic level (Freshman, Sophomore, Junior, Senior, Graduate, etc.)\n"
+        f"- time_commitment: Available time for projects/activities if mentioned\n\n"
+        f"Extract as much relevant information as possible. For experience, include job titles, companies, "
+        f"responsibilities, and achievements. For skills, include both technical and soft skills. "
+        f"For career_goal, extract any professional objectives or career aspirations mentioned.\n\n"
+        f"Resume text:\n{resume_text}\n\n"
+        f"Return ONLY valid JSON, no additional text."
+    )
+
+    try:
+        result = claude_chat(
+            prompt,
+            system_prompt="You are a resume parsing expert. Extract information accurately and return only valid JSON.",
+            max_tokens=800,
+            temperature=0.1,
+        ).strip()
+
+        # Clean up the response to ensure it's valid JSON
+        result = result.replace("```json", "").replace("```", "").strip()
+
+        # Parse the JSON response
+        parsed_data = json.loads(result)
+
+        # Ensure all expected fields are present with empty string defaults
+        expected_fields = [
+            "name",
+            "email",
+            "phone",
+            "location",
+            "major",
+            "graduation_year",
+            "gpa",
+            "skills",
+            "experience",
+            "career_goal",
+            "courses_taken",
+            "bio",
+            "student_year",
+            "time_commitment",
+        ]
+
+        for field in expected_fields:
+            if field not in parsed_data:
+                parsed_data[field] = ""
+            elif parsed_data[field] is None:
+                parsed_data[field] = ""
+
+        return parsed_data
+
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error in resume parsing: {e}")
+        # Return empty structure if parsing fails
+        return {
+            "name": "",
+            "email": "",
+            "phone": "",
+            "location": "",
+            "major": "",
+            "graduation_year": "",
+            "gpa": "",
+            "skills": "",
+            "experience": "",
+            "career_goal": "",
+            "courses_taken": "",
+            "bio": "",
+            "student_year": "",
+            "time_commitment": "",
+        }
+    except Exception as e:
+        logger.error(f"Error parsing resume: {e}")
+        # Return empty structure if parsing fails
+        return {
+            "name": "",
+            "email": "",
+            "phone": "",
+            "location": "",
+            "major": "",
+            "graduation_year": "",
+            "gpa": "",
+            "skills": "",
+            "experience": "",
+            "career_goal": "",
+            "courses_taken": "",
+            "bio": "",
+            "student_year": "",
+            "time_commitment": "",
+        }
 
 
 # API Endpoints
@@ -442,6 +559,21 @@ async def api_process_career_goal(request: ProcessGoalRequest):
         raise HTTPException(
             status_code=500, detail=f"Failed to process career goal: {exc}"
         )
+
+
+@app.post("/api/parse-resume")
+async def api_parse_resume(request: ResumeParseRequest):
+    """Parse resume text and extract structured information."""
+    if not request.resume_text.strip():
+        raise HTTPException(status_code=400, detail="Resume text is required.")
+
+    session_id = request.session_id or generate_session_id()
+
+    try:
+        parsed_data = parse_resume_text(request.resume_text)
+        return ResumeParseResponse(parsed_data=parsed_data, session_id=session_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to parse resume: {exc}")
 
 
 # Run with: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

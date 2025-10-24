@@ -149,7 +149,7 @@ def create_and_prepare_agent(
     # 1. Create agent
     create_params = {
         "agentName": name,
-        "foundationModel": "anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "foundationModel": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
         "instruction": instruction,
         "memoryConfiguration": {
             "enabledMemoryTypes": ["SESSION_SUMMARY"],

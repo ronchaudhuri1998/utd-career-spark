@@ -13,7 +13,7 @@ import boto3
 
 load_dotenv()
 REGION = os.getenv("AWS_REGION") or "us-east-1"
-MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
 
 bedrock = boto3.client("bedrock-runtime", region_name=REGION)
 
