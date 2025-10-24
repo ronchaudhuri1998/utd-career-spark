@@ -70,7 +70,7 @@ export interface ProcessCareerGoalResponse {
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ||
-  "https://backend-eu6swgj3k-davis118s-projects.vercel.app";
+  "https://backend-ruddy-nine-57.vercel.app";
 
 // Debug: Log the API URL being used
 console.log("API_BASE_URL:", API_BASE_URL);
@@ -87,7 +87,10 @@ export async function requestIntro(
 
   const response = await fetch(`${API_BASE_URL}/api/intro`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify(payload),
   });
 
@@ -127,10 +130,12 @@ export async function generatePlan(
     }
   }
 
-
   const response = await fetch(`${API_BASE_URL}/api/plan`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify(payload),
   });
 
@@ -233,7 +238,11 @@ export interface AgentCoreStatus {
 }
 
 export async function getAgentCoreStatus(): Promise<AgentCoreStatus> {
-  const response = await fetch(`${API_BASE_URL}/api/status`);
+  const response = await fetch(`${API_BASE_URL}/api/status`, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
   if (!response.ok) {
     throw new Error(`Status check failed: ${response.statusText}`);
   }
@@ -245,7 +254,10 @@ export async function processCareerGoal(
 ): Promise<ProcessCareerGoalResponse> {
   const response = await fetch(`${API_BASE_URL}/api/process-career-goal`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify({ goal }),
   });
 

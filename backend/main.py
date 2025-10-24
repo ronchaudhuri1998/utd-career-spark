@@ -48,12 +48,13 @@ app.add_middleware(
         "https://main.d2hfp6chj715ip.amplifyapp.com",
         "https://main.d2hfp6chj715ip.amplifyapp.com/",
         "https://main.d2hfp6chj715ip.amplifyapp.com/dashboard",
-        # Allow all origins for development (remove in production)
-        "*",
+        # Add your Vercel backend URL for testing
+        "https://backend-ruddy-nine-57.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    expose_headers=["*"],
 )
 
 # Initialize AgentCore orchestrator
@@ -199,6 +200,12 @@ async def root():
         "version": "2.0.0",
         "framework": "FastAPI + AWS Bedrock AgentCore",
     }
+
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle OPTIONS preflight requests for CORS."""
+    return {"message": "OK"}
 
 
 @app.get("/health")
