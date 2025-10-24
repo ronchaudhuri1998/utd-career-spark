@@ -3,6 +3,7 @@
 import aioboto3
 import os
 import logging
+import asyncio
 from typing import Dict, AsyncIterator, Optional
 from dotenv import load_dotenv
 
@@ -247,7 +248,22 @@ class AgentCoreOrchestrator:
                 "enableTrace": True,
             }
 
-            response = await runtime_client.invoke_agent(**invoke_params)
+            # Add retry logic with exponential backoff for throttling
+            max_retries = 3
+            base_delay = 1
+            
+            for attempt in range(max_retries):
+                try:
+                    response = await runtime_client.invoke_agent(**invoke_params)
+                    break
+                except Exception as e:
+                    if "throttlingException" in str(e) and attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Throttling detected, retrying in {delay} seconds (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        raise
 
             chunk_count = 0
             trace_count = 0

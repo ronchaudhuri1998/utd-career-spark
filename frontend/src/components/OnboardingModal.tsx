@@ -663,4 +663,3 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
 };
 
 export default OnboardingModal;
-
