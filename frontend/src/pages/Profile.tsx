@@ -7,10 +7,15 @@ import AcademicInfoCard from "@/components/profile/AcademicInfoCard";
 import CareerGoalCard from "@/components/profile/CareerGoalCard";
 import SkillsCard from "@/components/profile/SkillsCard";
 import ExperienceCard from "@/components/profile/ExperienceCard";
+import { Button } from "@/components/ui/button";
+import { useThemeMode } from "@/contexts/ThemeContext";
+import { Moon, Sun } from "lucide-react";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { userData, updateUserData, isLoading } = useUserData();
+  const { theme, toggleTheme } = useThemeMode();
+
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: "",
@@ -235,6 +240,20 @@ const Profile = () => {
         onCancel={handleCancel}
         onBack={handleBack}
       />
+      <div className="container mx-auto px-6 mt-4 flex justify-end">
+        <Button
+          onClick={toggleTheme}
+          variant="outline"
+          className="rounded-full w-fit px-5"
+        >
+          {theme === "ember" ? (
+            <Sun className="w-4 h-4 mr-2" />
+          ) : (
+            <Moon className="w-4 h-4 mr-2" />
+          )}
+          {theme === "ember" ? "Light Mode" : "Night Mode"}
+        </Button>
+      </div>
 
       <main className="container mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

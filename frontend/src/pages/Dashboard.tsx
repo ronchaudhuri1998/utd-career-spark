@@ -15,6 +15,8 @@ import {
   User,
   Code,
   Trash2,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
@@ -28,6 +30,7 @@ import {
   extractProjectStats,
   type StatItem,
 } from "@/lib/statsParser";
+import { useThemeMode } from "@/contexts/ThemeContext";
 
 const textToList = (text: string) =>
   text
@@ -157,6 +160,7 @@ const Dashboard = () => {
   const { isConnected, isRunning, runningAgents, agentCards, result, error } =
     useSSEReturn;
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const { theme, toggleTheme } = useThemeMode();
 
   // Auto-trigger onboarding if user hasn't been onboarded
   useEffect(() => {
@@ -228,7 +232,19 @@ const Dashboard = () => {
               Your AI Career Copilot
             </h1>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <Button
+              onClick={toggleTheme}
+              variant="outline"
+              className="rounded-full w-fit px-5"
+            >
+              {theme === "ember" ? (
+                <Sun className="w-4 h-4 mr-2" />
+              ) : (
+                <Moon className="w-4 h-4 mr-2" />
+              )}
+              {theme === "ember" ? "Light Mode" : "Night Mode"}
+            </Button>
             <Button
               onClick={() => navigate("/profile")}
               className="rounded-full w-fit px-5 bg-primary hover:bg-primary/90"
