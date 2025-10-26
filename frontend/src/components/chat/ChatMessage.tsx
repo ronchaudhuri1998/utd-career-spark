@@ -1,5 +1,6 @@
 import { Bot, User, Loader2, CircleCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -44,27 +45,28 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
   const shouldShowAccordion =
     isProgressUpdate && (hasProgressUpdates || hasOutput);
 
+  const messageClasses = cn(
+    "rounded-lg border p-3 text-sm transition-all duration-200 m-4 text-foreground",
+    message.isUser
+      ? "border-primary/50 bg-primary/15 dark:bg-primary/20"
+      : isProgressUpdate
+      ? isCompleted
+        ? "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-500/20"
+        : "border-primary/50 bg-primary/10 dark:bg-primary/20"
+      : "border-border bg-card/80 dark:bg-secondary/25"
+  );
+
   return (
-    <div
-      className={`rounded-lg border p-3 text-sm transition-all duration-200 m-4 ${
-        message.isUser
-          ? "border-primary/40 bg-primary/10"
-          : isProgressUpdate
-          ? isCompleted
-            ? "border-green-200 bg-green-50"
-            : "border-blue-200 bg-blue-50"
-          : "border-secondary bg-secondary/30"
-      }`}
-    >
+    <div className={messageClasses}>
       <div className="flex items-center justify-between mb-2 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           {message.isUser ? (
             <User className="w-3 h-3" />
           ) : isProgressUpdate ? (
             isCompleted ? (
-              <CircleCheck className="w-3 h-3 text-green-600" />
+              <CircleCheck className="w-3 h-3 text-emerald-500" />
             ) : (
-              <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+              <Loader2 className="w-3 h-3 text-primary animate-spin" />
             )
           ) : (
             <Bot className="w-3 h-3" />
@@ -73,7 +75,7 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
             {message.isUser ? "You" : message.meta?.agent || "Agent"}
           </span>
           {isProgressUpdate && !isCompleted && (
-            <span className="text-blue-600 text-xs">
+            <span className="text-primary text-xs font-medium">
               {isStarted ? "Starting..." : "Working..."}
             </span>
           )}
@@ -81,11 +83,10 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
         {!message.isUser && (
           <Badge
             variant="outline"
-            className={
-              message.meta?.agent
-                ? agentBadgeIntent[message.meta.agent] || ""
-                : ""
-            }
+            className={cn(
+              "bg-transparent border-border text-foreground/80",
+              message.meta?.agent ? agentBadgeIntent[message.meta.agent] || "" : ""
+            )}
           >
             {message.meta?.agent || "Response"}
           </Badge>
@@ -106,18 +107,26 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
               <div className="space-y-2">
                 {hasProgressUpdates && (
                   <div>
-                    <p className="font-medium text-sm mb-2">Reasoning:</p>
-                    {message.meta.progressUpdates.map((update, index) => (
-                      <p key={index} className="whitespace-pre-wrap">
-                        {update}
-                      </p>
-                    ))}
+                    <p className="font-medium text-sm mb-2 text-foreground">
+                      Reasoning:
+                    </p>
+                    <div className="space-y-1 text-sm text-foreground/90">
+                      {message.meta.progressUpdates.map((update, index) => (
+                        <p key={index} className="whitespace-pre-wrap">
+                          {update}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {isCompleted && hasOutput && (
                   <div>
-                    <p className="font-medium text-sm mb-2">Final Output:</p>
-                    <p className="whitespace-pre-wrap">{message.meta.output}</p>
+                    <p className="font-medium text-sm mb-2 text-foreground">
+                      Final Output:
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground/90">
+                      {message.meta.output}
+                    </p>
                   </div>
                 )}
               </div>
