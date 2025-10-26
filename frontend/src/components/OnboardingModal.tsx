@@ -5,18 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   GraduationCap,
   Upload,
@@ -24,16 +30,117 @@ import {
   UserCircle,
   Loader2,
   Sparkles,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUserData } from "@/contexts/UserDataContext";
 import { processCareerGoal } from "@/lib/api";
 import confetti from "canvas-confetti";
+import { cn } from "@/lib/utils";
 
 interface OnboardingModalProps {
   open: boolean;
   onClose?: () => void;
 }
+
+type MajorGroup = {
+  school: string;
+  majors: string[];
+};
+
+const majorGroups: MajorGroup[] = [
+  {
+    school: "ECSW · Erik Jonsson School of Engineering & Computer Science",
+    majors: [
+      "Computer Science",
+      "Software Engineering",
+      "Data Science",
+      "Computer Engineering",
+      "Electrical Engineering",
+      "Mechanical Engineering",
+      "Biomedical Engineering",
+      "Systems Engineering",
+      "Materials Science & Engineering",
+      "Telecommunications Engineering",
+    ],
+  },
+  {
+    school: "JSOM · Naveen Jindal School of Management",
+    majors: [
+      "Information Technology & Systems",
+      "Business Analytics",
+      "Finance",
+      "Marketing",
+      "Accounting",
+      "Supply Chain Management",
+      "Healthcare Management",
+      "Management Science",
+      "Human Resource Management",
+    ],
+  },
+  {
+    school: "NSM · School of Natural Sciences & Mathematics",
+    majors: [
+      "Biology",
+      "Chemistry",
+      "Biochemistry",
+      "Mathematics",
+      "Physics",
+      "Actuarial Science",
+      "Geosciences",
+      "Molecular Biology",
+      "Statistics",
+    ],
+  },
+  {
+    school: "EPPS · School of Economic, Political & Policy Sciences",
+    majors: [
+      "Economics",
+      "Political Science",
+      "Public Policy",
+      "International Political Economy",
+      "Criminology",
+      "Sociology",
+      "Geospatial Information Sciences",
+      "Public Affairs",
+    ],
+  },
+  {
+    school: "A&H · School of Arts & Humanities",
+    majors: [
+      "Arts, Technology, and Emerging Communication (ATEC)",
+      "Visual and Performing Arts",
+      "History",
+      "Literary Studies",
+      "Philosophy",
+      "Creative Writing",
+      "Art History",
+    ],
+  },
+  {
+    school: "BBS · School of Behavioral & Brain Sciences",
+    majors: [
+      "Psychology",
+      "Neuroscience",
+      "Cognitive Science",
+      "Speech, Language, and Hearing Sciences",
+      "Child Learning & Development",
+      "Healthcare Studies",
+    ],
+  },
+  {
+    school: "IS · School of Interdisciplinary Studies",
+    majors: [
+      "Interdisciplinary Studies",
+      "American Studies",
+      "Environmental Studies",
+      "Healthcare Studies (Interdisciplinary)",
+      "Gender Studies",
+      "International Studies",
+    ],
+  },
+];
 
 const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
   const navigate = useNavigate();
@@ -47,6 +154,7 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     major: userData.major || "",
   });
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isMajorOpen, setIsMajorOpen] = useState(false);
 
   // Mock resume data
   const mockResumeData = {
@@ -536,31 +644,68 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="major">Major</Label>
-                <Select
-                  value={formData.major}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, major: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your major" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    <SelectItem value="Computer Science">
-                      Computer Science
-                    </SelectItem>
-                    <SelectItem value="Software Engineering">
-                      Software Engineering
-                    </SelectItem>
-                    <SelectItem value="Data Science">Data Science</SelectItem>
-                    <SelectItem value="Information Technology">
-                      Information Technology
-                    </SelectItem>
-                    <SelectItem value="Computer Engineering">
-                      Computer Engineering
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={isMajorOpen} onOpenChange={setIsMajorOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isMajorOpen}
+                      className="w-full justify-between"
+                    >
+                      {formData.major
+                        ? formData.major
+                        : "Search or select your major"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[320px] p-0"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    avoidCollisions={false}
+                  >
+                    <Command className="max-h-[280px]">
+                      <CommandInput
+                        placeholder="Search majors..."
+                        className="h-10"
+                      />
+                      <CommandList className="max-h-[232px] overflow-y-auto pr-1">
+                        <CommandEmpty>No majors found.</CommandEmpty>
+                        {majorGroups.map((group) => (
+                          <CommandGroup
+                            key={group.school}
+                            heading={group.school}
+                          >
+                            {group.majors.map((major) => (
+                              <CommandItem
+                                key={major}
+                                value={major}
+                                onSelect={(currentValue) => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    major: currentValue,
+                                  }));
+                                  setIsMajorOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.major === major
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {major}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* TODO: Add AgentCore integration here
