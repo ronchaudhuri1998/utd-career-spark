@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUserData } from "@/contexts/UserDataContext";
 import { useSSEContext } from "@/contexts/SSEContext";
@@ -39,8 +39,31 @@ const DashboardEmbeddedChat = ({
       responseText,
     });
 
-  const [chatMessage, setChatMessage] = useState("");
+  const [chatMessage, setChatMessage] = useState(
+    () => userData.careerGoal || ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const previousPrefillGoal = useRef<string>("");
+
+  useEffect(() => {
+    const trimmedGoal = userData.careerGoal.trim();
+    if (!trimmedGoal) {
+      previousPrefillGoal.current = "";
+      return;
+    }
+
+    setChatMessage((current) => {
+      const normalizedCurrent = current.trim();
+      const previousGoal = previousPrefillGoal.current;
+      previousPrefillGoal.current = trimmedGoal;
+
+      if (!normalizedCurrent || normalizedCurrent === previousGoal) {
+        return trimmedGoal;
+      }
+
+      return current;
+    });
+  }, [userData.careerGoal]);
 
   // Build elaborate context prefix
   const buildContextPrefix = (userMessage: string) => {

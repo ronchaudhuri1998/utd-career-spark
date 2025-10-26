@@ -96,7 +96,7 @@ const ExperienceCard = ({
                   onChange={(e) =>
                     onNewExperienceChange("company", e.target.value)
                   }
-                  placeholder="e.g., University of Illinois, Urbana-Champaign"
+                  placeholder="e.g., The University of Texas at Dallas"
                 />
               </div>
               <div>
@@ -142,7 +142,7 @@ const ExperienceCard = ({
                   onChange={(e) =>
                     onNewExperienceChange("location", e.target.value)
                   }
-                  placeholder="e.g., Champaign, IL"
+                  placeholder="e.g., Richardson, TX"
                 />
               </div>
               <div>

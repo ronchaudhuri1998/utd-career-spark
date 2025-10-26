@@ -146,7 +146,6 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
   const navigate = useNavigate();
   const { userData, updateUserData, setOnboarded } = useUserData();
   const [step, setStep] = useState(1);
-  const [isProcessingGoal, setIsProcessingGoal] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [formData, setFormData] = useState({
     careerGoal: userData.careerGoal || "",
@@ -191,8 +190,8 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     workExperience: [
       {
         title: "Research Assistant, Faculty Expertise and SDG Dashboard",
-        company: "University of Illinois, Urbana-Champaign",
-        location: "Champaign, IL",
+        company: "The University of Texas at Dallas",
+        location: "Richardson, TX",
         duration: "November 2024 – Present",
         technologies: "Github Actions, Next.js, Pandas, Langchain",
         description:
@@ -326,15 +325,64 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
     }
   };
 
-  const handleContinue = async () => {
-    if (step === 1 && !formData.careerGoal) {
-      toast.error("Please enter your career goal");
-      return;
+  const isLikelyCareerGoal = (goal: string) => {
+    const normalized = goal.toLowerCase();
+    const alphaChars = goal.replace(/[^a-z]/gi, "");
+    const uniqueLetters = new Set(alphaChars.toLowerCase());
+
+    if (alphaChars.length < 3 || uniqueLetters.size < 3) {
+      return false;
     }
 
+    const words = normalized.split(/\s+/).filter(Boolean);
+    const keywords = [
+      "career",
+      "job",
+      "role",
+      "position",
+      "engineer",
+      "consult",
+      "manager",
+      "designer",
+      "analyst",
+      "developer",
+      "scientist",
+      "marketing",
+      "finance",
+      "teacher",
+      "nurse",
+    ];
+
+    if (words.length >= 3) {
+      return true;
+    }
+
+    return keywords.some((keyword) => normalized.includes(keyword));
+  };
+
+  const handleContinue = async () => {
     if (step === 1) {
-      // Just move to next step without processing
+      const trimmedGoal = formData.careerGoal.trim();
+
+      if (!trimmedGoal) {
+        toast.error("Please enter your career goal");
+        return;
+      }
+
+      if (!isLikelyCareerGoal(trimmedGoal)) {
+        toast.error(
+          "could not validate career goal. please enter a valid career goal"
+        );
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        careerGoal: trimmedGoal,
+      }));
+
       setStep(step + 1);
+      return;
     } else if (step === 2) {
       // Process resume data if uploaded
       if (formData.resume) {
@@ -342,7 +390,7 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
           // If it's the mock resume, extract the data
           if (formData.resume.name === "davis_mo_resume.json") {
             const resumeText = await formData.resume.text();
-            const resumeData = JSON.parse(resumeText);
+            const resumeData = JSON.parse(resumeText) as typeof mockResumeData;
 
             // Update user data with resume information
             updateUserData({
@@ -366,7 +414,7 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
                 ...resumeData.technicalSkills.tools.split(", "),
                 ...resumeData.technicalSkills.libraries.split(", "),
               ],
-              experience: resumeData.workExperience.map((exp: any) => {
+              experience: resumeData.workExperience.map((exp) => {
                 // Parse duration strings to proper date formats
                 const durationParts = exp.duration.split(" – ");
                 const startDate = durationParts[0];
@@ -539,7 +587,7 @@ const OnboardingModal = ({ open, onClose }: OnboardingModalProps) => {
                   <Label htmlFor="career-goal">Career Goal</Label>
                   <Textarea
                     id="career-goal"
-                    placeholder="Tell us about your career aspirations in your own words... e.g., 'I want to become a data scientist working with machine learning' or 'I'm interested in becoming a software engineer at a tech company'"
+                    placeholder="Tell us about your career aspirations in your own words... e.g., 'I want to become a data scientist working with machine learning' or 'I'm interested in becoming a strategy consultant guiding mission-driven organizations'"
                     value={formData.careerGoal}
                     onChange={(e) =>
                       setFormData({ ...formData, careerGoal: e.target.value })
