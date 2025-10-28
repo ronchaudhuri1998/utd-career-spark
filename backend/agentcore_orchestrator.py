@@ -22,6 +22,7 @@ class AgentCoreOrchestrator:
         self.planner_alias_id = os.getenv("AGENTCORE_PLANNER_ALIAS_ID")
         self.session = aioboto3.Session()
         self.collaborator_invocation_counts = {}
+        self.action_group_invocations = {}  # Track action group calls by traceId
 
     def _build_input_text(
         self, goal: str, user_context: Optional[Dict[str, str]] = None
@@ -72,6 +73,10 @@ class AgentCoreOrchestrator:
         """Extract useful info from trace event."""
         trace_part = event.get("trace", {})
         trace_data = trace_part.get("trace", {})
+        
+        # Log raw trace_part keys to see what's available
+        logger.info(f"Trace part keys: {list(trace_part.keys())}")
+        logger.info(f"Trace data keys: {list(trace_data.keys())}")
 
         # Extract agent/collaborator info
         collaborator_name = trace_part.get("collaboratorName")
@@ -98,8 +103,19 @@ class AgentCoreOrchestrator:
             count = self.collaborator_invocation_counts[collaborator_name]
             result["agent_call_id"] = f"{session_id}_{collaborator_name}_{count}"
 
+        # Check for failure traces first
+        if "failureTrace" in trace_data:
+            failure = trace_data["failureTrace"]
+            result["status"] = "failed"
+            result["failure_reason"] = failure.get("failureReason", "Unknown error")
+            logger.error(f"Agent failed: {result['failure_reason']}")
+            return result
+
         if "orchestrationTrace" in trace_data:
             orch = trace_data["orchestrationTrace"]
+            
+            # Log all available fields in orchestrationTrace
+            logger.info(f"OrchestrationTrace keys: {list(orch.keys())}")
 
             # Reasoning
             if "rationale" in orch and orch["rationale"].get("text"):
@@ -121,6 +137,80 @@ class AgentCoreOrchestrator:
                     result["calling_collaborator"] = collab_name
                     result["input_text"] = collab_input.get("input", {}).get("text")
                     result["status"] = "started"  # Collaborator invocation started
+
+                elif inv.get("invocationType") == "ACTION_GROUP":
+                    # Handle action group invocation input
+                    action_input = inv.get("actionGroupInvocationInput", {})
+                    trace_id = inv.get("traceId")
+                    
+                    if trace_id and action_input:
+                        # Extract action group details
+                        action_group_name = action_input.get("actionGroupName", "Unknown Action Group")
+                        function_name = action_input.get("function", "Unknown Function")
+                        api_path = action_input.get("apiPath", "")
+                        verb = action_input.get("verb", "")
+                        execution_type = action_input.get("executionType", "LAMBDA")
+                        
+                        # Convert parameters array to dict for easier frontend display
+                        parameters = {}
+                        param_list = action_input.get("parameters", [])
+                        for param in param_list:
+                            if isinstance(param, dict) and "name" in param and "value" in param:
+                                parameters[param["name"]] = param["value"]
+                        
+                        # Store invocation details for later matching with observation
+                        self.action_group_invocations[trace_id] = {
+                            "actionGroupName": action_group_name,
+                            "function": function_name,
+                            "apiPath": api_path,
+                            "verb": verb,
+                            "executionType": execution_type,
+                            "parameters": parameters,
+                            "sessionId": session_id
+                        }
+                        
+                        # Create tool call entry with "calling" status
+                        result["tool_calls"] = result.get("tool_calls", [])
+                        result["tool_calls"].append({
+                            "type": "action_group",
+                            "name": action_group_name,
+                            "function": function_name,
+                            "status": "calling",
+                            "parameters": parameters,
+                            "api_path": api_path,
+                            "verb": verb,
+                            "trace_id": trace_id
+                        })
+                        
+                        logger.info(f"Action group invocation started: {action_group_name}.{function_name} (traceId: {trace_id})")
+
+                elif inv.get("invocationType") == "KNOWLEDGE_BASE":
+                    # Handle knowledge base lookup input
+                    kb_input = inv.get("knowledgeBaseLookupInput", {})
+                    trace_id = inv.get("traceId")
+                    
+                    if trace_id and kb_input:
+                        kb_id = kb_input.get("knowledgeBaseId", "unknown")
+                        query_text = kb_input.get("text", "")
+                        
+                        # Store KB invocation details
+                        self.action_group_invocations[trace_id] = {
+                            "knowledgeBaseId": kb_id,
+                            "query": query_text,
+                            "sessionId": session_id
+                        }
+                        
+                        # Create tool call entry
+                        result["tool_calls"] = result.get("tool_calls", [])
+                        result["tool_calls"].append({
+                            "type": "knowledge_base",
+                            "name": kb_id.replace("_", " ").title(),
+                            "status": "calling",
+                            "query": query_text,
+                            "trace_id": trace_id
+                        })
+                        
+                        logger.info(f"Knowledge base lookup started: {kb_id} (traceId: {trace_id})")
 
             # Collaborator response
             if "observation" in orch:
@@ -150,39 +240,79 @@ class AgentCoreOrchestrator:
 
                     # AWS Bedrock uses actionGroupInvocationOutput (not actionGroupInvocation)
                     action_inv = obs.get("actionGroupInvocationOutput", {})
+                    trace_id = obs.get("traceId")
+                    
                     result["tool_calls"] = result.get("tool_calls", [])
-
-                    # The action group name is not provided in the observation structure
-                    # We can try to infer it from the output content or use a generic name
-                    output_text = action_inv.get("text", "")
-
-                    # Try to infer tool type from output content
-                    if "job" in output_text.lower() or "hiring" in output_text.lower():
-                        display_name = "Job Market Tools"
-                    elif (
-                        "course" in output_text.lower() or "cs " in output_text.lower()
-                    ):
-                        display_name = "Course Catalog Tools"
-                    elif (
-                        "project" in output_text.lower()
-                        or "github" in output_text.lower()
-                    ):
-                        display_name = "Project Tools"
-                    elif (
-                        "nebula" in output_text.lower()
-                        or "professor" in output_text.lower()
-                    ):
-                        display_name = "Nebula API Tools"
-                    else:
-                        display_name = "Lambda Tool"
-
-                    result["tool_calls"].append(
-                        {
+                    
+                    # Look up stored invocation details by traceId
+                    if trace_id and trace_id in self.action_group_invocations:
+                        stored_invocation = self.action_group_invocations[trace_id]
+                        
+                        # Extract output details
+                        output_text = action_inv.get("text", "")
+                        metadata = action_inv.get("metadata", {})
+                        execution_time_ms = metadata.get("totalTimeMs")
+                        client_request_id = metadata.get("clientRequestId")
+                        
+                        # Create completed tool call entry with all details
+                        tool_call = {
                             "type": "action_group",
-                            "name": display_name,
-                            "result": f"Calling {display_name}",
+                            "name": stored_invocation["actionGroupName"],
+                            "function": stored_invocation["function"],
+                            "status": "completed",
+                            "parameters": stored_invocation["parameters"],
+                            "api_path": stored_invocation["apiPath"],
+                            "verb": stored_invocation["verb"],
+                            "trace_id": trace_id,
+                            "result": f"Completed {stored_invocation['actionGroupName']}.{stored_invocation['function']}"
                         }
-                    )
+                        
+                        # Add optional fields if available
+                        if execution_time_ms is not None:
+                            tool_call["execution_time_ms"] = execution_time_ms
+                        if client_request_id:
+                            tool_call["client_request_id"] = client_request_id
+                        if output_text:
+                            tool_call["response"] = output_text
+                        
+                        result["tool_calls"].append(tool_call)
+                        
+                        # Clean up stored invocation
+                        del self.action_group_invocations[trace_id]
+                        
+                        logger.info(f"Action group completed: {stored_invocation['actionGroupName']}.{stored_invocation['function']} (traceId: {trace_id}, time: {execution_time_ms}ms)")
+                    else:
+                        # Fallback to old inference method if traceId not found
+                        output_text = action_inv.get("text", "")
+                        
+                        # Try to infer tool type from output content
+                        if "job" in output_text.lower() or "hiring" in output_text.lower():
+                            display_name = "Job Market Tools"
+                        elif (
+                            "course" in output_text.lower() or "cs " in output_text.lower()
+                        ):
+                            display_name = "Course Catalog Tools"
+                        elif (
+                            "project" in output_text.lower()
+                            or "github" in output_text.lower()
+                        ):
+                            display_name = "Project Tools"
+                        elif (
+                            "nebula" in output_text.lower()
+                            or "professor" in output_text.lower()
+                        ):
+                            display_name = "Nebula API Tools"
+                        else:
+                            display_name = "Lambda Tool"
+
+                        result["tool_calls"].append(
+                            {
+                                "type": "action_group",
+                                "name": display_name,
+                                "status": "completed",
+                                "result": f"Completed {display_name}",
+                            }
+                        )
 
                 # Knowledge Base lookups
                 elif obs.get("type") == "KNOWLEDGE_BASE":
@@ -190,33 +320,71 @@ class AgentCoreOrchestrator:
                     logger.info(f"KNOWLEDGE_BASE observation: {obs}")
 
                     kb_output = obs.get("knowledgeBaseLookupOutput", {})
+                    trace_id = obs.get("traceId")
+                    
                     result["tool_calls"] = result.get("tool_calls", [])
-
-                    # Extract knowledge base name if available
-                    raw_kb_name = (
-                        kb_output.get("knowledgeBaseName")
-                        or kb_output.get("knowledgeBaseId")
-                        or "knowledge_base"
-                    )
-
-                    # Map knowledge base names to more user-friendly display names
-                    kb_display_names = {
-                        "knowledge_base": "Knowledge Base",
-                        "course_catalog": "Course Catalog",
-                        "academic_database": "Academic Database",
-                    }
-
-                    display_name = kb_display_names.get(
-                        raw_kb_name, raw_kb_name.replace("_", " ").title()
-                    )
-
-                    result["tool_calls"].append(
-                        {
+                    
+                    # Look up stored KB invocation details by traceId
+                    if trace_id and trace_id in self.action_group_invocations:
+                        stored_invocation = self.action_group_invocations[trace_id]
+                        
+                        # Extract output details
+                        metadata = kb_output.get("metadata", {})
+                        execution_time_ms = metadata.get("totalTimeMs")
+                        client_request_id = metadata.get("clientRequestId")
+                        retrieved_references = kb_output.get("retrievedReferences", [])
+                        
+                        # Create completed KB tool call entry
+                        tool_call = {
                             "type": "knowledge_base",
-                            "name": display_name,
-                            "result": f"Calling {display_name}",
+                            "name": stored_invocation["knowledgeBaseId"].replace("_", " ").title(),
+                            "status": "completed",
+                            "query": stored_invocation["query"],
+                            "trace_id": trace_id,
+                            "result": f"Retrieved {len(retrieved_references)} references from {stored_invocation['knowledgeBaseId']}"
                         }
-                    )
+                        
+                        # Add optional fields if available
+                        if execution_time_ms is not None:
+                            tool_call["execution_time_ms"] = execution_time_ms
+                        if client_request_id:
+                            tool_call["client_request_id"] = client_request_id
+                        if retrieved_references:
+                            tool_call["references_count"] = len(retrieved_references)
+                        
+                        result["tool_calls"].append(tool_call)
+                        
+                        # Clean up stored invocation
+                        del self.action_group_invocations[trace_id]
+                        
+                        logger.info(f"Knowledge base lookup completed: {stored_invocation['knowledgeBaseId']} (traceId: {trace_id}, time: {execution_time_ms}ms, refs: {len(retrieved_references)})")
+                    else:
+                        # Fallback to old method if traceId not found
+                        raw_kb_name = (
+                            kb_output.get("knowledgeBaseName")
+                            or kb_output.get("knowledgeBaseId")
+                            or "knowledge_base"
+                        )
+
+                        # Map knowledge base names to more user-friendly display names
+                        kb_display_names = {
+                            "knowledge_base": "Knowledge Base",
+                            "course_catalog": "Course Catalog",
+                            "academic_database": "Academic Database",
+                        }
+
+                        display_name = kb_display_names.get(
+                            raw_kb_name, raw_kb_name.replace("_", " ").title()
+                        )
+
+                        result["tool_calls"].append(
+                            {
+                                "type": "knowledge_base",
+                                "name": display_name,
+                                "status": "completed",
+                                "result": f"Completed {display_name}",
+                            }
+                        )
 
         return result
 
@@ -229,6 +397,7 @@ class AgentCoreOrchestrator:
         """Stream supervisor agent response as async generator."""
         # Reset invocation counts for new request
         self.collaborator_invocation_counts = {}
+        self.action_group_invocations = {}  # Reset action group tracking
 
         input_text = self._build_input_text(goal, user_context)
 
@@ -277,6 +446,12 @@ class AgentCoreOrchestrator:
 
                 elif "trace" in event:
                     trace_count += 1
+                    
+                    # Log the RAW trace event for debugging
+                    logger.info(
+                        f"AgentCore TRACE #{trace_count} RAW: {event.get('trace', {})}"
+                    )
+                    
                     trace_data = self._parse_trace_event(event, session_id)
                     logger.info(
                         f"AgentCore TRACE #{trace_count}: Full trace data: {trace_data}"

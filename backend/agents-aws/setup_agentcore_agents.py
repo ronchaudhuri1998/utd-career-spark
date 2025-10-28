@@ -139,6 +139,7 @@ def create_and_prepare_agent(
     with_tools=False,
     tool_type="job",
     skip_prepare=False,
+    model_id=None,
 ):
     """Create agent, optionally prepare it, and create alias"""
 
@@ -147,9 +148,18 @@ def create_and_prepare_agent(
     print("=" * 60)
 
     # 1. Create agent
+    # Use specified model or default to Claude for supervisor, Nova Lite for collaborators
+    if model_id is None:
+        if is_supervisor:
+            model_id = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        else:
+            model_id = "amazon.nova-lite-v1:0"
+    
+    print(f"  Using model: {model_id}")
+    
     create_params = {
         "agentName": name,
-        "foundationModel": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "foundationModel": model_id,
         "instruction": instruction,
         "memoryConfiguration": {
             "enabledMemoryTypes": ["SESSION_SUMMARY"],
@@ -299,6 +309,150 @@ def create_and_prepare_agent(
                     },
                 )
                 print(f"  ✓ Added project tools to {name}")
+
+        elif tool_type == "catalog":
+            # Catalog browser tools
+            lambda_arn = "arn:aws:lambda:us-east-1:556316456032:function:UTD_CatalogBrowser"
+            control_client.create_agent_action_group(
+                agentId=agent_id,
+                agentVersion="DRAFT",
+                actionGroupName="catalog_browser",
+                actionGroupExecutor={"lambda": lambda_arn},
+                functionSchema={
+                    "functions": [
+                        {
+                            "name": "get_information",
+                            "description": "Browse UTD Course Catalog to get degree requirements, required courses, and course sequences for specific majors and minors.",
+                            "parameters": {
+                                "majors": {
+                                    "type": "string",
+                                    "description": "JSON string of major names to degree types (e.g., '{\"Computer Science\": \"BS\"}')",
+                                    "required": True,
+                                },
+                                "minors": {
+                                    "type": "string", 
+                                    "description": "JSON string of minor names to degree types (optional, e.g., '{\"Mathematics\": \"Minor\"}')",
+                                    "required": False,
+                                },
+                            },
+                        },
+                    ]
+                },
+            )
+            print(f"  ✓ Added catalog browser tools to {name}")
+
+        elif tool_type == "catalog+course":
+            # Add both catalog browser and Nebula API tools
+            # First add catalog browser tools
+            catalog_lambda_arn = "arn:aws:lambda:us-east-1:556316456032:function:UTD_CatalogBrowser"
+            control_client.create_agent_action_group(
+                agentId=agent_id,
+                agentVersion="DRAFT",
+                actionGroupName="catalog_browser",
+                actionGroupExecutor={"lambda": catalog_lambda_arn},
+                functionSchema={
+                    "functions": [
+                        {
+                            "name": "get_information",
+                            "description": "Browse UTD Course Catalog to get degree requirements, required courses, and course sequences for specific majors and minors.",
+                            "parameters": {
+                                "majors": {
+                                    "type": "string",
+                                    "description": "JSON string of major names to degree types (e.g., '{\"Computer Science\": \"BS\"}')",
+                                    "required": True,
+                                },
+                                "minors": {
+                                    "type": "string", 
+                                    "description": "JSON string of minor names to degree types (optional, e.g., '{\"Mathematics\": \"Minor\"}')",
+                                    "required": False,
+                                },
+                            },
+                        },
+                    ]
+                },
+            )
+            print(f"  ✓ Added catalog browser tools to {name}")
+            
+            # Then add Nebula API tools
+            nebula_lambda_arn = os.getenv("LAMBDA_NEBULA_API_TOOLS_ARN")
+            if not nebula_lambda_arn:
+                print(f"  ⚠️  Warning: LAMBDA_NEBULA_API_TOOLS_ARN not found, skipping Nebula tools")
+            else:
+                control_client.create_agent_action_group(
+                    agentId=agent_id,
+                    agentVersion="DRAFT",
+                    actionGroupName="nebula_tools",
+                    actionGroupExecutor={"lambda": nebula_lambda_arn},
+                    functionSchema={
+                        "functions": [
+                            {
+                                "name": "get_course_sections_trends",
+                                "description": "Get historical section data with grade distributions and professor information for a specific course.",
+                                "parameters": {
+                                    "subject_prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix (e.g., CS, MATH)",
+                                        "required": True,
+                                    },
+                                    "course_number": {
+                                        "type": "string",
+                                        "description": "Course number (e.g., 1336, 2413)",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_professor_sections_trends",
+                                "description": "Get all sections a specific professor has taught with grade distributions and course details.",
+                                "parameters": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": True,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_course_information",
+                                "description": "Get basic course metadata like title, description, prerequisites, and core flags.",
+                                "parameters": {
+                                    "subject_prefix": {
+                                        "type": "string",
+                                        "description": "Course prefix",
+                                        "required": True,
+                                    },
+                                    "course_number": {
+                                        "type": "string",
+                                        "description": "Course number",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                            {
+                                "name": "get_professor_information",
+                                "description": "Get professor details, titles, and basic information.",
+                                "parameters": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "description": "Professor's first name",
+                                        "required": True,
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "description": "Professor's last name",
+                                        "required": True,
+                                    },
+                                },
+                            },
+                        ]
+                    },
+                )
+                print(f"  ✓ Added Nebula API tools to {name}")
 
         elif tool_type == "course":
             lambda_arn = os.getenv("LAMBDA_NEBULA_API_TOOLS_ARN")
@@ -485,18 +639,21 @@ def main():
     project_prompt = load_prompt("project_advisor_agent.txt")
     planner_prompt = load_prompt("career_planner_supervisor.txt")
 
+    # Collaborator agents use Nova Lite for higher rate limits
     job_id, job_alias_id, job_alias_arn = create_and_prepare_agent(
         f"UTD-JobMarket-{TIMESTAMP}",
         job_prompt,
         with_tools=True,
         tool_type="job",
+        model_id="amazon.nova-lite-v1:0",  # Explicitly use Nova Lite
     )
 
     course_id, course_alias_id, course_alias_arn = create_and_prepare_agent(
         f"UTD-CourseCatalog-{TIMESTAMP}",
         course_prompt,
         with_tools=True,
-        tool_type="course",
+        tool_type="catalog+course",  # Both catalog browser and Nebula API
+        model_id="amazon.nova-pro-v1:0",  # Use Nova Pro for higher rate limits and better capability
     )
 
     project_id, project_alias_id, project_alias_arn = create_and_prepare_agent(
@@ -504,6 +661,7 @@ def main():
         project_prompt,
         with_tools=True,
         tool_type="project",
+        model_id="amazon.nova-lite-v1:0",  # Explicitly use Nova Lite
     )
 
     # Create supervisor agent (skip prepare until collaborators are added)

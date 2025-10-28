@@ -9,15 +9,24 @@ import zipfile
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from project root (3 levels up from this file)
+env_path = Path(__file__).parent.parent.parent.parent / '.env'
+load_dotenv(env_path)
+print(f"Loading .env from: {env_path}")
+
+# Explicitly set AWS credentials from .env for boto3
+os.environ["AWS_ACCESS_KEY_ID"] = os.getenv("AWS_ACCESS_KEY_ID", "")
+os.environ["AWS_SECRET_ACCESS_KEY"] = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+os.environ["AWS_REGION"] = os.getenv("AWS_REGION", "us-east-1")
 
 lambda_client = boto3.client("lambda", region_name=os.getenv("AWS_REGION", "us-east-1"))
 iam_client = boto3.client("iam", region_name=os.getenv("AWS_REGION", "us-east-1"))
 
-FUNCTION_NAME = "UTD-JobMarketTools"
-ROLE_NAME = "UTD-JobMarketToolsLambdaRole"
+FUNCTION_NAME = "UTD_JobMarketTools"
+ROLE_NAME = "UTD_JobMarketToolsLambdaRole"
 
 
 def get_lambda_role():
@@ -132,6 +141,19 @@ def deploy_lambda_function(role_arn, zip_path):
         )
         function_arn = response["FunctionArn"]
         print(f"✓ Updated Lambda function: {function_arn}")
+    
+    except Exception as e:
+        if "AccessDenied" in str(type(e)) or "not authorized" in str(e):
+            print(f"\n❌ Permission Error: {e}")
+            print("\nYour AWS user needs Lambda permissions. Please add these permissions:")
+            print("  - lambda:CreateFunction")
+            print("  - lambda:UpdateFunctionCode")
+            print("  - lambda:UpdateFunctionConfiguration")
+            print("  - lambda:GetFunction")
+            print("  - lambda:AddPermission")
+            print("\nOr ask your AWS admin to add the AWSLambda_FullAccess policy to your user.")
+            sys.exit(1)
+        raise
 
     return function_arn
 

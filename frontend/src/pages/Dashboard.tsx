@@ -24,6 +24,7 @@ import { useSSEContext } from "@/contexts/SSEContext";
 import MainChatOverlayStreaming from "@/components/MainChatOverlayStreaming";
 import OnboardingModal from "@/components/OnboardingModal";
 import StatsGrid from "@/components/StatsGrid";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import {
   extractJobMarketStats,
   extractCourseStats,
@@ -64,7 +65,14 @@ const InsightsCard = ({
   runningAgents: string[];
 }) => {
   const isAgentRunning = runningAgents.includes(agentName);
-  const showLoading = loading || isAgentRunning;
+  const [simulating, setSimulating] = useState(false);
+  const showLoading = loading || isAgentRunning || simulating;
+
+  useEffect(() => {
+    if (!simulating) return;
+    const t = setTimeout(() => setSimulating(false), 4000);
+    return () => clearTimeout(t);
+  }, [simulating]);
 
   return (
     <Card
@@ -72,7 +80,7 @@ const InsightsCard = ({
         isAgentRunning ? "border-primary/50 animate-pulse" : ""
       }`}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-3 flex-shrink-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 flex-shrink-0 p-4 pt-4 pb-2">
         <div className="flex items-center gap-3">
           <div
             className={`p-2 rounded-lg bg-gradient-primary text-white shadow-sm ${
@@ -86,34 +94,38 @@ const InsightsCard = ({
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
         </div>
-        <Badge
-          variant={showLoading ? "secondary" : "outline"}
-          className={`text-xs ${isAgentRunning ? "animate-pulse" : ""}`}
-        >
-          {isAgentRunning ? "Running" : showLoading ? "Refreshing" : "Ready"}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSimulating(true);
+            }}
+          >
+            Simulate
+          </Button>
+          <Badge
+            variant={showLoading ? "secondary" : "outline"}
+            className={`text-xs ${isAgentRunning ? "animate-pulse" : ""}`}
+          >
+            {isAgentRunning ? "Running" : showLoading ? "Refreshing" : "Ready"}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-1 flex-1 flex flex-col min-h-0 p-4 pt-0">
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="relative flex-1 min-h-[80px] overflow-hidden">
           {showLoading ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {isAgentRunning
+            <LoadingOverlay
+              title={
+                isAgentRunning
                   ? `${agentName} is analyzing data...`
-                  : "Agents are gathering the latest insights..."}
-              </p>
-            </div>
+                  : "Agents are gathering the latest insights..."
+              }
+              simulateButton={false}
+              autoSimulate={simulating}
+            />
           ) : stats && stats.length > 0 ? (
             <StatsGrid stats={stats} />
           ) : items.length ? (
@@ -132,13 +144,15 @@ const InsightsCard = ({
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           )}
         </div>
-        <Button
-          onClick={navigating}
-          variant="outline"
-          className="justify-start gap-2 text-sm flex-shrink-0 h-8 mt-4"
-        >
-          View full dashboard
-        </Button>
+        {!showLoading && (
+          <Button
+            onClick={navigating}
+            variant="outline"
+            className="justify-start gap-2 text-sm flex-shrink-0 h-8 mt-4"
+          >
+            View full dashboard
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

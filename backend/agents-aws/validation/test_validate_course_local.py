@@ -210,6 +210,112 @@ def test_no_parameters():
         print("Warnings:", response_body["warnings"])
 
 
+def test_api_validation():
+    """Test API-based validation with real course codes."""
+    print("\n" + "=" * 60)
+    print("Testing API-BASED VALIDATION")
+    print("=" * 60)
+
+    # Test with real UTD course codes that should exist in Nebula API
+    api_test_text = """=== RECOMMENDED COURSES ===
+Fall 2025:
+1. CS 1337. Skills: Programming, C++, Data Structures
+2. CS 2336. Skills: Java, Object-Oriented Programming
+3. MATH 2413. Skills: Calculus, Mathematics
+
+Spring 2026:
+1. CS 3345. Skills: Algorithms, Data Structures
+2. CS 3341. Skills: Probability, Statistics
+3. CS 1200. Skills: Computer Science Fundamentals
+
+=== SEMESTER PLAN ===
+Fall 2025 (9 credits): CS 1337, CS 2336, MATH 2413
+Spring 2026 (9 credits): CS 3345, CS 3341, CS 1200
+
+=== PREREQUISITES ===
+CS 1337 → Required for: CS 2336, CS 3345
+CS 2336 → Required for: CS 3345
+MATH 2413 → Required for: CS 3341
+
+=== SKILL AREAS ===
+- Programming (high importance): CS 1337, CS 2336
+- Mathematics (medium importance): MATH 2413, CS 3341
+- Algorithms (high importance): CS 3345
+
+=== ACADEMIC RESOURCES ===
+- CS Tutoring Center (tutoring): Free tutoring for CS courses
+- Math Lab (lab): Mathematics support and resources"""
+
+    event = {
+        "actionGroup": "validation_tools",
+        "function": "validate_course_format",
+        "parameters": [
+            {"name": "response_text", "type": "string", "value": api_test_text}
+        ],
+    }
+
+    result = lambda_handler(event, {})
+    print("Result:", json.dumps(result, indent=2))
+
+    # Parse the response
+    response_body = json.loads(
+        result["response"]["functionResponse"]["responseBody"]["TEXT"]["body"]
+    )
+    print(f"\nValidation Result: {response_body['message']}")
+    if response_body["errors"]:
+        print("Errors:", response_body["errors"])
+    if response_body["warnings"]:
+        print("Warnings:", response_body["warnings"])
+    
+    print("\nNote: API validation warnings depend on Nebula API availability and course data.")
+    print("If NEBULA_API_KEY is not set, API validation will be skipped gracefully.")
+
+
+def test_nonexistent_courses():
+    """Test with non-existent course codes."""
+    print("\n" + "=" * 60)
+    print("Testing NON-EXISTENT COURSES")
+    print("=" * 60)
+
+    nonexistent_text = """=== RECOMMENDED COURSES ===
+Fall 2025:
+1. CS 9999. Skills: Advanced Non-Existent Programming
+2. MATH 8888. Skills: Imaginary Mathematics
+
+=== SEMESTER PLAN ===
+Fall 2025 (6 credits): CS 9999, MATH 8888
+
+=== PREREQUISITES ===
+CS 9999 → Required for: MATH 8888
+
+=== SKILL AREAS ===
+- Non-Existent Skills (high importance): CS 9999, MATH 8888
+
+=== ACADEMIC RESOURCES ===
+- Imaginary Resource Center (tutoring): Support for non-existent courses"""
+
+    event = {
+        "actionGroup": "validation_tools",
+        "function": "validate_course_format",
+        "parameters": [
+            {"name": "response_text", "type": "string", "value": nonexistent_text}
+        ],
+    }
+
+    result = lambda_handler(event, {})
+    print("Result:", json.dumps(result, indent=2))
+
+    # Parse the response
+    response_body = json.loads(
+        result["response"]["functionResponse"]["responseBody"]["TEXT"]["body"]
+    )
+    print(f"\nValidation Result: {response_body['message']}")
+    if response_body["errors"]:
+        print("Errors:", response_body["errors"])
+    if response_body["warnings"]:
+        print("Warnings:", response_body["warnings"])
+
+
 def main():
     """Run all tests."""
     print("Course Validation Lambda - Local Tests")
@@ -220,6 +326,8 @@ def main():
         test_invalid_course_format()
         test_malformed_course_format()
         test_no_parameters()
+        test_api_validation()
+        test_nonexistent_courses()
 
         print("\n" + "=" * 60)
         print("All tests completed!")

@@ -41,104 +41,213 @@ class FormatValidationResult:
         else:
             return f"✗ Format is invalid: {len(self.errors)} errors, {len(self.warnings)} warnings"
 
+def extract_courses_from_text(text: str) -> List[Tuple[str, str]]:
+    """
+    Parse course codes from text (e.g., "CS 1337", "MATH 2413").
+    Returns list of tuples: [(prefix, number), ...]
+    """
+    # Pattern to match course codes like CS 1337, MATH 2413, etc.
+    pattern = r'([A-Z]{2,4})\s+(\d{3,4})'
+    matches = re.findall(pattern, text)
+    
+    # Deduplicate courses
+    unique_courses = list(set(matches))
+    return unique_courses
+
 
 def validate_course_format(text: str) -> FormatValidationResult:
     """
     Validate course data format.
 
-    Expected format:
-    === COURSE CATALOG ===
-    Course #1:
-    Code: ...
-    Name: ...
-    Credits: ...
-    Difficulty: beginner/intermediate/advanced
-    Prerequisites: ... or None
-    Semester: ... (optional)
-    Professor: ... (optional)
-    Skills: ... (optional)
-    Description: ... (optional)
+        Expected format:
+        === RECOMMENDED COURSES ===
+        Fall 2025:
+        1. CS [Number]. Skills: [Skill1], [Skill2], [Skill3]
+        2. CS [Number]. Skills: [Skill1], [Skill2], [Skill3]
+
+        Spring 2026:
+        1. CS [Number]. Skills: [Skill1], [Skill2], [Skill3]
+        2. CS [Number]. Skills: [Skill1], [Skill2], [Skill3]
 
     === SEMESTER PLAN ===
-    - Semester Name (credits credits): course1, course2, course3
+    Fall 2025 ([Total] credits):
+    - CS [Number], CS [Number]
 
     === PREREQUISITES ===
-    - Course Code (required for: course1, course2)
+    CS [Number] → Required for: CS [Number], CS [Number]
 
     === SKILL AREAS ===
-    - Area Name (high/medium/low importance): course1, course2
+    - [Skill Area Name]: CS [Number], CS [Number]
 
     === ACADEMIC RESOURCES ===
-    [tutoring/workshop/lab/club/certification/other] Resource Name
-    Description text...
+    - [Resource Name] ([type]): [Description]
     """
     errors = []
     warnings = []
 
-    # Check for required sections
-    required_sections = [
-        "=== COURSE CATALOG ===",
-        "=== SEMESTER PLAN ===",
-        "=== PREREQUISITES ===",
-        "=== SKILL AREAS ===",
-        "=== ACADEMIC RESOURCES ===",
-    ]
+    # Simplified validator: Only warnings for semester credit load
+    # and prerequisite ordering across semesters.
 
-    for section in required_sections:
-        if section not in text:
-            errors.append(f"Missing required section: {section}")
+    # Extract courses section if present
+    courses_section = ""
+    if "=== RECOMMENDED COURSES ===" in text:
+        courses_section = text.split("=== RECOMMENDED COURSES ===")[1].split("===")[0]
 
-    # Validate course catalog format
-    if "=== COURSE CATALOG ===" in text:
-        course_pattern = r"Course\s+#\d+:"
-        course_matches = re.findall(course_pattern, text)
-        if len(course_matches) == 0:
-            warnings.append("No courses found in COURSE CATALOG section")
-
-        # Check for required fields in courses
-        if course_matches:
-            for i, match in enumerate(course_matches, 1):
-                course_section = text.split(match)[1].split(
-                    "Course #" if i < len(course_matches) else "==="
-                )[0]
-                required_fields = ["Code:", "Name:", "Credits:", "Difficulty:"]
-                for field in required_fields:
-                    if field not in course_section:
-                        warnings.append(f"Course #{i} missing field: {field}")
-
-    # Validate semester plan format
-    if "=== SEMESTER PLAN ===" in text:
-        semester_section = text.split("=== SEMESTER PLAN ===")[1].split("===")[0]
-        semester_pattern = r"-\s+.+\s+\(\d+\s+credits?\):"
-        semester_matches = re.findall(semester_pattern, semester_section, re.IGNORECASE)
-        if len(semester_matches) == 0:
-            warnings.append("No properly formatted semester plans found")
-
-    # Validate prerequisites format
+    # Extract prerequisite section if present (optional)
+    prereq_section = ""
     if "=== PREREQUISITES ===" in text:
         prereq_section = text.split("=== PREREQUISITES ===")[1].split("===")[0]
-        prereq_pattern = r"-\s+.+\s+\(required for:"
-        prereq_matches = re.findall(prereq_pattern, prereq_section, re.IGNORECASE)
-        if len(prereq_matches) == 0:
-            warnings.append("No properly formatted prerequisites found")
 
-    # Validate skill areas format
-    if "=== SKILL AREAS ===" in text:
-        skill_section = text.split("=== SKILL AREAS ===")[1].split("===")[0]
-        skill_pattern = r"-\s+.+\s+\((high|medium|low)\s+importance\):"
-        skill_matches = re.findall(skill_pattern, skill_section, re.IGNORECASE)
-        if len(skill_matches) == 0:
-            warnings.append("No properly formatted skill areas found")
+    # Skip format checks for skills/resources per new requirements
 
-    # Validate academic resources format
-    if "=== ACADEMIC RESOURCES ===" in text:
-        resources_section = text.split("=== ACADEMIC RESOURCES ===")[1]
-        resource_pattern = r"\[(tutoring|workshop|lab|club|certification|other)\]"
-        resource_matches = re.findall(
-            resource_pattern, resources_section, re.IGNORECASE
-        )
-        if len(resource_matches) == 0:
-            warnings.append("No properly formatted academic resources found")
+    # Best-effort credit load warning (uses explicit totals if present)
+    # Looks for lines like: "Fall 2025 ([Total] credits):" anywhere in text
+    credit_header_pattern = r"^(Fall|Spring)\s+\d{4}\s*\((\d+)\s*credits\):"
+    for sem_header, credits_str in re.findall(credit_header_pattern, text, re.MULTILINE):
+        try:
+            credits_val = int(credits_str)
+            if credits_val < 12 or credits_val > 18:
+                warnings.append(
+                    f"Semester '{sem_header}' credit load {credits_val} outside 12–18 band"
+                )
+        except ValueError:
+            # Ignore malformed totals
+            pass
+
+    # Prerequisite ordering warning (best-effort)
+    # Build term index map from RECOMMENDED COURSES ordering
+    term_order: Dict[str, int] = {}
+    if "=== RECOMMENDED COURSES ===" in text:
+        courses_section = text.split("=== RECOMMENDED COURSES ===")[1].split("===")[0]
+        term_index = -1
+        for line in courses_section.splitlines():
+            line = line.strip()
+            sem_m = re.match(r"^(Fall|Spring)\s+(\d{4}):$", line)
+            if sem_m:
+                term_index += 1
+                current_term = f"{sem_m.group(1)} {sem_m.group(2)}"
+                term_order[current_term] = term_index
+                continue
+            course_m = re.match(r"^\d+\.\s+([A-Z]{2,4}\s+\d{3,4})\.", line)
+            # We don't need to store per-course term here; we will compare using prerequisites map below
+            # The per-course term will be inferred when scanning again
+        
+        # Build course->term index map
+        course_term: Dict[str, int] = {}
+        current_term_name = None
+        for line in courses_section.splitlines():
+            line = line.strip()
+            sem_m = re.match(r"^(Fall|Spring)\s+(\d{4}):$", line)
+            if sem_m:
+                current_term_name = f"{sem_m.group(1)} {sem_m.group(2)}"
+                continue
+            course_m = re.match(r"^\d+\.\s+([A-Z]{2,4}\s+\d{3,4})\.", line)
+            if course_m and current_term_name is not None:
+                course_term[course_m.group(1)] = term_order.get(current_term_name, 0)
+
+        # Parse prerequisites relationships from PREREQUISITES section
+        if "=== PREREQUISITES ===" in text:
+            prereq_section = text.split("=== PREREQUISITES ===")[1].split("===")[0]
+            for line in prereq_section.splitlines():
+                line = line.strip()
+                m = re.match(r"^([A-Z]{2,4}\s+\d{3,4})\s*→\s*Required for:\s*(.+)$", line)
+                if not m:
+                    continue
+                prereq_course = m.group(1)
+                required_for = [c.strip() for c in m.group(2).split(",") if c.strip()]
+                for target in required_for:
+                    if target in course_term and prereq_course in course_term:
+                        if course_term[target] <= course_term[prereq_course]:
+                            warnings.append(
+                                f"Prerequisite order warning: {target} appears not after its prerequisite {prereq_course}"
+                            )
+
+    # API-based validation using Nebula API
+    try:
+        # Extract all course codes from the text
+        courses = extract_courses_from_text(text)
+        
+        if courses:
+            # Build semester-to-courses mapping for prerequisite validation
+            semester_courses: Dict[str, List[str]] = {}
+            if "=== RECOMMENDED COURSES ===" in text:
+                courses_section = text.split("=== RECOMMENDED COURSES ===")[1].split("===")[0]
+                current_semester = None
+                for line in courses_section.splitlines():
+                    line = line.strip()
+                    sem_m = re.match(r"^(Fall|Spring)\s+(\d{4}):$", line)
+                    if sem_m:
+                        current_semester = f"{sem_m.group(1)} {sem_m.group(2)}"
+                        semester_courses[current_semester] = []
+                        continue
+                    course_m = re.match(r"^\d+\.\s+([A-Z]{2,4}\s+\d{3,4})\.", line)
+                    if course_m and current_semester:
+                        semester_courses[current_semester].append(course_m.group(1))
+            
+            # Validate each course against Nebula API
+            for subject_prefix, course_number in courses:
+                course_code = f"{subject_prefix} {course_number}"
+                course_info = get_course_info_from_nebula(subject_prefix, course_number)
+                
+                if course_info is None:
+                    warnings.append(f"Course {course_code} not found in Nebula API")
+                    continue
+                
+                # Validate credit hours if stated in text
+                if course_info.get("credit_hours"):
+                    api_credits = str(course_info["credit_hours"])
+                    # Look for credit hour mentions in text for this course
+                    credit_pattern = rf"{re.escape(course_code)}.*?(\d+)\s*credits?"
+                    credit_matches = re.findall(credit_pattern, text, re.IGNORECASE)
+                    for stated_credits in credit_matches:
+                        if stated_credits != api_credits:
+                            warnings.append(f"Credit hour mismatch for {course_code}: stated {stated_credits}, API shows {api_credits}")
+                
+                # Validate prerequisites using API data
+                api_prereqs = course_info.get("prerequisites", "")
+                if api_prereqs:
+                    # Handle both string and dict prerequisites
+                    if isinstance(api_prereqs, dict):
+                        # Convert dict to string representation for parsing
+                        api_prereqs_str = str(api_prereqs)
+                    else:
+                        api_prereqs_str = str(api_prereqs).strip()
+                    
+                    if api_prereqs_str:
+                        # Extract prerequisite course codes from API prerequisites text
+                        prereq_courses = extract_courses_from_text(api_prereqs_str)
+                        
+                        # Check if this course is scheduled before its prerequisites
+                        course_semester = None
+                        for semester, courses_list in semester_courses.items():
+                            if course_code in courses_list:
+                                course_semester = semester
+                                break
+                        
+                        if course_semester:
+                            # Find semester index
+                            semester_list = list(semester_courses.keys())
+                            course_semester_index = semester_list.index(course_semester) if course_semester in semester_list else -1
+                            
+                            # Check each prerequisite
+                            for prereq_prefix, prereq_number in prereq_courses:
+                                prereq_code = f"{prereq_prefix} {prereq_number}"
+                                prereq_semester = None
+                                for semester, courses_list in semester_courses.items():
+                                    if prereq_code in courses_list:
+                                        prereq_semester = semester
+                                        break
+                                
+                                if prereq_semester:
+                                    prereq_semester_index = semester_list.index(prereq_semester) if prereq_semester in semester_list else -1
+                                    if course_semester_index >= 0 and prereq_semester_index >= 0 and course_semester_index <= prereq_semester_index:
+                                        warnings.append(f"Prerequisite violation: {course_code} scheduled in {course_semester} but prerequisite {prereq_code} is in {prereq_semester}")
+                                else:
+                                    warnings.append(f"Prerequisite {prereq_code} for {course_code} not found in semester plan")
+    
+    except Exception as e:
+        # Gracefully handle API validation failures
+        warnings.append(f"API validation failed: {str(e)}")
 
     is_valid = len(errors) == 0
     return FormatValidationResult(is_valid, errors, warnings)

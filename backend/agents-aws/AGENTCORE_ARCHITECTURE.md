@@ -38,7 +38,7 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
            │                    │                    │
            ▼                    ▼                    ▼
 ┌──────────────────┐ ┌──────────────────┐ ┌───────────────────┐
-│ UTD-JobMarketTools│ │ UTD-NebulaAPITools│ │ UTD-ProjectTools │
+│ UTD_JobMarketTools│ │ UTD_NebulaAPITools│ │ UTD_ProjectTools │
 │                  │ │                  │ │                   │
 │ Functions:       │ │ Functions:       │ │ Functions:        │
 │ ├─scrape_hackernews_jobs()│ ├─get_course_sections_trends()│ ├─search_github_projects()│
@@ -62,7 +62,7 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 │              Validation Layer                               │
 │                                                             │
 │ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐│
-│ │UTD-ValidateJobMarket│ │UTD-ValidateCourse│ │UTD-ValidateProject││
+│ │UTD_ValidateJobMarket│ │UTD_ValidateCourse│ │UTD_ValidateProject││
 │ │                 │ │                 │ │                 ││
 │ │Functions:       │ │Functions:       │ │Functions:       ││
 │ │├─validate_job_market_format()│ │├─validate_course_format()│ │├─validate_project_format()││
@@ -139,28 +139,28 @@ A production-ready AWS Bedrock AgentCore multi-agent system for career guidance,
 
 ### Lambda Functions
 
-#### 1. Job Market Tools (`UTD-JobMarketTools`)
+#### 1. Job Market Tools (`UTD_JobMarketTools`)
 ```python
 # Runtime: Python 3.11, Timeout: 60s, Memory: 512MB
 # Functions: scrape_hackernews_jobs(), scrape_itjobswatch_skills()
 # Data Sources: Hacker News, IT Jobs Watch
 ```
 
-#### 2. Nebula API Tools (`UTD-NebulaAPITools`)
+#### 2. Nebula API Tools (`UTD_NebulaAPITools`)
 ```python
 # Runtime: Python 3.11, Timeout: 30s, Memory: 256MB
 # Functions: get_course_sections_trends(), get_professor_sections_trends(), etc.
 # Data Sources: UTD Nebula API (courses, professors, grades)
 ```
 
-#### 3. Project Tools (`UTD-ProjectTools`)
+#### 3. Project Tools (`UTD_ProjectTools`)
 ```python
 # Runtime: Python 3.11, Timeout: 60s, Memory: 512MB
 # Functions: search_github_projects(), search_arxiv_papers(), etc.
 # Data Sources: GitHub, ArXiv, Hugging Face, Kaggle
 ```
 
-#### 4. Validation Tools (`UTD-ValidateJobMarket`, `UTD-ValidateCourse`, `UTD-ValidateProject`)
+#### 4. Validation Tools (`UTD_ValidateJobMarket`, `UTD_ValidateCourse`, `UTD_ValidateProject`)
 ```python
 # Runtime: Python 3.11, Timeout: 30s, Memory: 256MB
 # Functions: validate_job_market_format(), validate_course_format(), validate_project_format()
@@ -235,12 +235,12 @@ control_client.associate_agent_collaborator(
 
 | Function Name | ARN | Runtime | Purpose |
 | ------------- | --- | ------- | ------- |
-| UTD-JobMarketTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools` | Python 3.11 | Web scraping (HN, IT Jobs Watch) |
-| UTD-NebulaAPITools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-NebulaAPITools` | Python 3.11 | UTD course/professor data |
-| UTD-ProjectTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ProjectTools` | Python 3.11 | Project recommendations (GitHub, ArXiv, etc.) |
-| UTD-ValidateJobMarket | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateJobMarket` | Python 3.11 | Job market format validation |
-| UTD-ValidateCourse | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateCourse` | Python 3.11 | Course format validation |
-| UTD-ValidateProject | `arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateProject` | Python 3.11 | Project format validation |
+| UTD_JobMarketTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD_JobMarketTools` | Python 3.11 | Web scraping (HN, IT Jobs Watch) |
+| UTD_NebulaAPITools | `arn:aws:lambda:us-east-1:556316456032:function:UTD_NebulaAPITools` | Python 3.11 | UTD course/professor data |
+| UTD_ProjectTools | `arn:aws:lambda:us-east-1:556316456032:function:UTD_ProjectTools` | Python 3.11 | Project recommendations (GitHub, ArXiv, etc.) |
+| UTD_ValidateJobMarket | `arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateJobMarket` | Python 3.11 | Job market format validation |
+| UTD_ValidateCourse | `arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateCourse` | Python 3.11 | Course format validation |
+| UTD_ValidateProject | `arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateProject` | Python 3.11 | Project format validation |
 
 ### IAM Role
 
@@ -330,12 +330,12 @@ AWS_SECRET_ACCESS_KEY=...
 AGENTCORE_EXECUTION_ROLE_ARN=arn:aws:iam::556316456032:role/AgentCoreMemoryRole
 
 # Lambda Functions
-LAMBDA_JOB_MARKET_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-JobMarketTools
-LAMBDA_NEBULA_API_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-NebulaAPITools
-LAMBDA_PROJECT_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ProjectTools
-LAMBDA_VALIDATE_JOBMARKET_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateJobMarket
-LAMBDA_VALIDATE_COURSE_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateCourse
-LAMBDA_VALIDATE_PROJECT_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateProject
+LAMBDA_JOB_MARKET_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_JobMarketTools
+LAMBDA_NEBULA_API_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_NebulaAPITools
+LAMBDA_PROJECT_TOOLS_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ProjectTools
+LAMBDA_VALIDATE_JOBMARKET_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateJobMarket
+LAMBDA_VALIDATE_COURSE_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateCourse
+LAMBDA_VALIDATE_PROJECT_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateProject
 
 # API Keys
 NEBULA_API_KEY=your_nebula_api_key

@@ -47,105 +47,55 @@ def validate_job_market_format(text: str) -> FormatValidationResult:
     Validate job market data format.
 
     Expected format:
-    === JOB LISTINGS ===
-    Job #1:
-    Title: ...
-    Company: ...
-    Location: ...
-    Salary: ... (optional)
-    Type: ...
-    Skills: ...
-    Posted: ... (optional)
-    Description: ... (optional)
-
-    === HOT ROLES ===
-    - Role Name (count openings) [trending up/down/stable]
+    === TOP COMPANIES HIRING ===
+    - [Company Name]
+    - [Company Name]
+    [List 3-5 companies]
 
     === IN-DEMAND SKILLS ===
-    - Skill Name (high/medium/low demand, count listings)
+    - [Skill Name] (trending up/down/stable)
+    - [Skill Name] (trending up/down/stable)
+    [Include 5-8 skills]
 
-    === TOP EMPLOYERS ===
-    - Employer Name (count openings, location) or (count openings)
-
-    === MARKET TRENDS ===
-    [POSITIVE/NEGATIVE/NEUTRAL] Trend Name
-    Description text...
+    === MARKET INSIGHTS ===
+    [2-3 sentence summary]
     """
     errors = []
     warnings = []
 
     # Check for required sections
     required_sections = [
-        "=== JOB LISTINGS ===",
-        "=== HOT ROLES ===",
+        "=== TOP COMPANIES HIRING ===",
         "=== IN-DEMAND SKILLS ===",
-        "=== TOP EMPLOYERS ===",
-        "=== MARKET TRENDS ===",
+        "=== MARKET INSIGHTS ===",
     ]
 
     for section in required_sections:
         if section not in text:
             errors.append(f"Missing required section: {section}")
 
-    # Validate job listings format
-    if "=== JOB LISTINGS ===" in text:
-        job_pattern = r"Job\s+#\d+:"
-        job_matches = re.findall(job_pattern, text)
-        if len(job_matches) == 0:
-            warnings.append("No job listings found in JOB LISTINGS section")
+    # Validate companies section
+    if "=== TOP COMPANIES HIRING ===" in text:
+        companies_section = text.split("=== TOP COMPANIES HIRING ===")[1].split("===")[0]
+        # Check for bullet points
+        if not any(line.strip().startswith("- ") for line in companies_section.split("\n")):
+            warnings.append("No companies found in TOP COMPANIES HIRING section")
 
-        # Check for required fields in job listings
-        if job_matches:
-            for i, match in enumerate(job_matches, 1):
-                job_section = text.split(match)[1].split(
-                    "Job #" if i < len(job_matches) else "==="
-                )[0]
-                required_fields = [
-                    "Title:",
-                    "Company:",
-                    "Location:",
-                    "Type:",
-                    "Skills:",
-                ]
-                for field in required_fields:
-                    if field not in job_section:
-                        warnings.append(f"Job #{i} missing field: {field}")
-
-    # Validate hot roles format
-    if "=== HOT ROLES ===" in text:
-        hot_roles_section = text.split("=== HOT ROLES ===")[1].split("===")[0]
-        role_pattern = (
-            r"-\s+.+\s+\(\d+\s+openings?\)\s+\[(?:trending\s+)?(up|down|stable)\]"
-        )
-        role_matches = re.findall(role_pattern, hot_roles_section, re.IGNORECASE)
-        if len(role_matches) == 0:
-            warnings.append("No properly formatted hot roles found")
-
-    # Validate in-demand skills format
+    # Validate skills section
     if "=== IN-DEMAND SKILLS ===" in text:
         skills_section = text.split("=== IN-DEMAND SKILLS ===")[1].split("===")[0]
-        skill_pattern = r"-\s+.+\s+\((high|medium|low)\s+demand,\s+\d+\s+listings?\)"
+        # Check for skills with trend indicators
+        skill_pattern = r"-\s+.+\s+\(trending\s+(up|down|stable)\)"
         skill_matches = re.findall(skill_pattern, skills_section, re.IGNORECASE)
         if len(skill_matches) == 0:
-            warnings.append("No properly formatted skills found")
+            warnings.append("No properly formatted skills with trend indicators found")
 
-    # Validate top employers format
-    if "=== TOP EMPLOYERS ===" in text:
-        employers_section = text.split("=== TOP EMPLOYERS ===")[1].split("===")[0]
-        employer_pattern = r"-\s+.+\s+\(\d+\s+openings?"
-        employer_matches = re.findall(
-            employer_pattern, employers_section, re.IGNORECASE
-        )
-        if len(employer_matches) == 0:
-            warnings.append("No properly formatted employers found")
-
-    # Validate market trends format
-    if "=== MARKET TRENDS ===" in text:
-        trends_section = text.split("=== MARKET TRENDS ===")[1]
-        trend_pattern = r"\[(POSITIVE|NEGATIVE|NEUTRAL)\]"
-        trend_matches = re.findall(trend_pattern, trends_section, re.IGNORECASE)
-        if len(trend_matches) == 0:
-            warnings.append("No properly formatted market trends found")
+    # Validate market insights section
+    if "=== MARKET INSIGHTS ===" in text:
+        insights_section = text.split("=== MARKET INSIGHTS ===")[1]
+        # Check for meaningful content (at least some text)
+        if len(insights_section.strip()) < 20:
+            warnings.append("MARKET INSIGHTS section seems too short")
 
     is_valid = len(errors) == 0
     return FormatValidationResult(is_valid, errors, warnings)

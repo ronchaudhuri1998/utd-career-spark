@@ -72,7 +72,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({
   }
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <div className={`flex flex-wrap gap-2 mt-4 ${className}`}>
       {stats.map((stat, index) => {
         const IconComponent = stat.icon ? iconMap[stat.icon] : null;
 

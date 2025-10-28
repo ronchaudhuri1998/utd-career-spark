@@ -1,0 +1,11 @@
+{
+  "actionGroup": "validation_tools",
+  "function": "validate_course_format",
+  "parameters": [
+    {
+      "name": "response_text",
+      "type": "string",
+      "value": "=== RECOMMENDED COURSES ===\nFall 2025:\n1. CS 1337. Skills: Programming, C++, Data Structures\n2. CS 2336. Skills: Java, Object-Oriented Programming\n3. MATH 2413. Skills: Calculus, Mathematics\n\nSpring 2026:\n1. CS 3345. Skills: Algorithms, Data Structures\n2. CS 3341. Skills: Probability, Statistics\n3. CS 9999. Skills: Non-Existent Course\n\n=== SEMESTER PLAN ===\nFall 2025 (9 credits): CS 1337, CS 2336, MATH 2413\nSpring 2026 (9 credits): CS 3345, CS 3341, CS 9999\n\n=== PREREQUISITES ===\nCS 1337 → Required for: CS 2336, CS 3345\nCS 2336 → Required for: CS 3345\nMATH 2413 → Required for: CS 3341\n\n=== SKILL AREAS ===\n- Programming (high importance): CS 1337, CS 2336\n- Mathematics (medium importance): MATH 2413, CS 3341\n- Algorithms (high importance): CS 3345\n\n=== ACADEMIC RESOURCES ===\n- CS Tutoring Center (tutoring): Free tutoring for CS courses\n- Math Lab (lab): Mathematics support and resources"
+    }
+  ]
+}

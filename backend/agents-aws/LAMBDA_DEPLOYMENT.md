@@ -30,14 +30,14 @@ agents-aws/
 ## Lambda Functions
 
 ### 1. Job Market Tools (`job/`)
-- **Function Name**: `UTD-JobMarketTools`
+- **Function Name**: `UTD_JobMarketTools`
 - **Purpose**: Web scraping for job market data
 - **Functions**:
   - `scrape_hackernews_jobs()` - Scrapes Hacker News job postings
   - `scrape_itjobswatch_skills()` - Gets trending tech skills from IT Jobs Watch
 
 ### 2. Nebula API Tools (`nebula/`)
-- **Function Name**: `UTD-NebulaAPITools`
+- **Function Name**: `UTD_NebulaAPITools`
 - **Purpose**: UTD course catalog and professor data via Nebula API
 - **Functions**:
   - `get_course_sections_trends()` - Historical section data with grade distributions
@@ -49,7 +49,7 @@ agents-aws/
   - `get_professor_dashboard_data()` - Comprehensive professor dashboard
 
 ### 3. Project Tools (`projects/`)
-- **Function Name**: `UTD-ProjectTools`
+- **Function Name**: `UTD_ProjectTools`
 - **Purpose**: Project recommendations and portfolio analysis
 - **Functions**:
   - `search_github_projects()` - Search GitHub repositories for inspiration
@@ -59,7 +59,7 @@ agents-aws/
   - `search_project_inspiration()` - Multi-source project search
 
 ### 4. Validation Tools (`validation/`)
-- **Function Names**: `UTD-ValidateJobMarket`, `UTD-ValidateCourse`, `UTD-ValidateProject`
+- **Function Names**: `UTD_ValidateJobMarket`, `UTD_ValidateCourse`, `UTD_ValidateProject`
 - **Purpose**: Format validation for agent outputs
 - **Functions**:
   - `validate_job_market_format()` - Validates job market agent output format

@@ -1,0 +1,27 @@
+{
+  "messageVersion": "1.0",
+  "agent": {
+    "name": "CourseCatalogAgent",
+    "id": "5XKNXFQX8K",
+    "alias": "9ZHVVWCOPV",
+    "version": "1"
+  },
+  "inputText": "Please create a comprehensive academic roadmap for Davis Mo, a Computer Science major expected to graduate in 2028. The student already has skills in Typescript, Python, C++, HTML, CSS, React, Next.js, Tailwind, Vite, Git, Github Actions, VS Code, Jupyter, FAISS, OpenAI, Pandas, GSAP, and shadcn/ui. The student's career goal is to excel as a Software Engineer and eventually grow into a technical leadership role. Please provide a structured semester-by-semester course plan with UT Dallas courses that will help the student achieve these goals.",
+  "sessionId": "test-session-12345",
+  "actionGroup": "catalog_browser",
+  "function": "get_information",
+  "parameters": [
+    {
+      "name": "majors",
+      "type": "string",
+      "value": "{\"Computer Science\": \"BS\"}"
+    },
+    {
+      "name": "minors",
+      "type": "string",
+      "value": "{}"
+    }
+  ],
+  "sessionAttributes": {},
+  "promptSessionAttributes": {}
+}

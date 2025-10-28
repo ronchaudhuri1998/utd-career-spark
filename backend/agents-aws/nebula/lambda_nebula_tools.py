@@ -10,6 +10,67 @@ import requests
 from typing import List, Dict, Tuple, Optional
 
 
+def calculate_grade_stats(grade_distribution: List[int]) -> Dict:
+    """Convert grade array [A+, A, A-, B+, ...] to summary stats"""
+    if not grade_distribution or sum(grade_distribution) == 0:
+        return {"average_gpa": None, "pass_rate": None, "total_students": 0}
+    
+    grade_points = [4.0, 4.0, 3.67, 3.33, 3.0, 2.67, 2.33, 2.0, 1.67, 1.33, 1.0, 0.67, 0.0, 0.0]
+    total_students = sum(grade_distribution)
+    weighted_sum = sum(points * count for points, count in zip(grade_points, grade_distribution))
+    avg_gpa = weighted_sum / total_students if total_students > 0 else 0.0
+    
+    # Pass = C or better (first 9 grades)
+    passing = sum(grade_distribution[:9])
+    pass_rate = (passing / total_students * 100) if total_students > 0 else 0.0
+    
+    return {
+        "average_gpa": round(avg_gpa, 2),
+        "pass_rate": round(pass_rate, 1),
+        "total_students": total_students
+    }
+
+def filter_section_data(section: Dict) -> Dict:
+    """Extract minimal fields from section object"""
+    professor_names = []
+    if section.get("professor_details"):
+        professor_names = [
+            f"{p.get('first_name', '')} {p.get('last_name', '')}"
+            for p in section["professor_details"]
+        ]
+    
+    course_title = ""
+    if section.get("course_details") and len(section["course_details"]) > 0:
+        course_title = section["course_details"][0].get("title", "")
+    
+    grade_stats = calculate_grade_stats(section.get("grade_distribution", []))
+    
+    return {
+        "semester": section.get("academic_session", {}).get("name", ""),
+        "section_number": section.get("section_number", ""),
+        "professors": professor_names,
+        "course_title": course_title,
+        "grade_stats": grade_stats
+    }
+
+def filter_course_info(course: Dict) -> Dict:
+    """Extract minimal course information"""
+    return {
+        "title": course.get("title", ""),
+        "description": course.get("description", ""),
+        "credit_hours": course.get("credit_hours", ""),
+        "prerequisites": course.get("prerequisites", "")
+    }
+
+def filter_professor_info(prof: Dict) -> Dict:
+    """Extract minimal professor information"""
+    return {
+        "name": f"{prof.get('first_name', '')} {prof.get('last_name', '')}",
+        "email": prof.get("email", ""),
+        "titles": prof.get("titles", [])
+    }
+
+
 def get_course_sections_trends(
     subject_prefix: str, course_number: str
 ) -> Tuple[List[Dict], str]:
@@ -36,6 +97,10 @@ def get_course_sections_trends(
         sections = data.get("data", [])
         if sections is None:
             sections = []
+        
+        # Filter section data to keep only essential fields
+        sections = [filter_section_data(s) for s in sections]
+        
         return (
             sections,
             f"Retrieved {len(sections)} sections for {subject_prefix} {course_number}",
@@ -73,6 +138,10 @@ def get_professor_sections_trends(
         sections = data.get("data", [])
         if sections is None:
             sections = []
+        
+        # Filter section data to keep only essential fields
+        sections = [filter_section_data(s) for s in sections]
+        
         return (
             sections,
             f"Retrieved {len(sections)} sections for Professor {first_name} {last_name}",
@@ -161,6 +230,19 @@ def get_course_information(subject_prefix: str, course_number: str) -> Tuple[Dic
         course_info = data.get("data", {})
         if course_info is None:
             course_info = {}
+        
+        # API may return a list - take first item if so
+        if isinstance(course_info, list) and len(course_info) > 0:
+            course_info = course_info[0]
+        elif isinstance(course_info, list):
+            course_info = {}
+        
+        # Filter course info to keep only essential fields
+        if course_info and isinstance(course_info, dict):
+            course_info = filter_course_info(course_info)
+        else:
+            course_info = {}
+        
         return (
             course_info,
             f"Retrieved course information for {subject_prefix} {course_number}",
@@ -196,6 +278,19 @@ def get_professor_information(first_name: str, last_name: str) -> Tuple[Dict, st
         professor_info = data.get("data", {})
         if professor_info is None:
             professor_info = {}
+        
+        # API may return a list - take first item if so
+        if isinstance(professor_info, list) and len(professor_info) > 0:
+            professor_info = professor_info[0]
+        elif isinstance(professor_info, list):
+            professor_info = {}
+        
+        # Filter professor info to keep only essential fields
+        if professor_info and isinstance(professor_info, dict):
+            professor_info = filter_professor_info(professor_info)
+        else:
+            professor_info = {}
+        
         return (
             professor_info,
             f"Retrieved professor information for {first_name} {last_name}",

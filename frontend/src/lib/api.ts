@@ -249,6 +249,75 @@ export async function getAgentCoreStatus(): Promise<AgentCoreStatus> {
   return (await response.json()) as AgentCoreStatus;
 }
 
+export interface CourseDetails {
+  title: string;
+  description: string;
+  credit_hours: string;
+  prerequisites: string;
+}
+
+export async function fetchCourseDetails(
+  courseCode: string
+): Promise<CourseDetails> {
+  const [subject, number] = courseCode.split(" ");
+  const response = await fetch(
+    `${API_BASE_URL}/api/nebula/course?subject_prefix=${subject}&course_number=${number}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch course details: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.data || {};
+}
+
+// Helper: parse numeric credit hours from Nebula's credit_hours string (e.g., "3 Semester Credit Hours")
+export function parseNumericCredits(
+  creditHours: string | number | undefined
+): number | null {
+  if (typeof creditHours === "number")
+    return Number.isFinite(creditHours) ? creditHours : null;
+  if (!creditHours || typeof creditHours !== "string") return null;
+  const m = creditHours.match(/(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : null;
+}
+
+// Fetch credits for a set of course codes with parallelism cap and compute per-semester totals
+export async function enrichSemestersWithCredits(
+  semesters: { name: string; courses: string[]; totalCredits: number }[],
+  concurrency = 6
+): Promise<{ name: string; courses: string[]; totalCredits: number }[]> {
+  const unique = new Set<string>();
+  semesters.forEach((s) => s.courses.forEach((c) => unique.add(c)));
+  const codes = Array.from(unique);
+
+  const results = new Map<string, number>();
+
+  // Simple concurrency control
+  let idx = 0;
+  async function worker() {
+    while (idx < codes.length) {
+      const code = codes[idx++];
+      try {
+        const details = await fetchCourseDetails(code);
+        const n = parseNumericCredits(details?.credit_hours);
+        if (n !== null) results.set(code, n);
+      } catch {
+        // ignore fetch errors; leave missing
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, codes.length) }, worker)
+  );
+
+  return semesters.map((s) => {
+    const total = s.courses.reduce((sum, c) => sum + (results.get(c) ?? 0), 0);
+    return { ...s, totalCredits: total > 0 ? total : 0 };
+  });
+}
+
 export async function processCareerGoal(
   goal: string
 ): Promise<ProcessCareerGoalResponse> {

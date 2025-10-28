@@ -48,55 +48,25 @@ def validate_project_format(text: str) -> FormatValidationResult:
 
     Expected format:
     === PROJECT RECOMMENDATIONS ===
-    Project #1:
-    Title: ...
-    Description: ...
-    Skills: ...
-    Difficulty: beginner/intermediate/advanced
-    Estimated Time: ... (optional)
-    Category: ... (optional)
-    Career Relevance: ... (optional)
+    - **[Project Title]**: [Brief 1-2 sentence description. Skills: [list key skills]. Difficulty: [level]]
+    - **[Project Title]**: [Brief 1-2 sentence description. Skills: [list key skills]. Difficulty: [level]]
+    [Include 3-4 diverse project ideas]
     """
     errors = []
     warnings = []
 
     # Check for required section
-    if "=== PROJECT RECOMMENDATIONS ===" not in text and "=== PROJECT ===" not in text:
-        errors.append(
-            "Missing required section: === PROJECT RECOMMENDATIONS === or === PROJECT ==="
-        )
+    if "=== PROJECT RECOMMENDATIONS ===" not in text:
+        errors.append("Missing required section: === PROJECT RECOMMENDATIONS ===")
 
-    # Validate project format
-    project_pattern = r"Project\s+#\d+:"
-    project_matches = re.findall(project_pattern, text)
-    if len(project_matches) == 0:
-        warnings.append("No projects found in PROJECT RECOMMENDATIONS section")
-
-    # Check for required fields in projects
-    if project_matches:
-        for i, match in enumerate(project_matches, 1):
-            project_section = text.split(match)[1].split(
-                "Project #" if i < len(project_matches) else "==="
-            )[0]
-            required_fields = ["Title:", "Description:", "Skills:", "Difficulty:"]
-            for field in required_fields:
-                if field not in project_section:
-                    warnings.append(f"Project #{i} missing field: {field}")
-
-            # Check difficulty value
-            if "Difficulty:" in project_section:
-                difficulty_line = [
-                    line
-                    for line in project_section.split("\n")
-                    if line.strip().startswith("Difficulty:")
-                ][0]
-                if not any(
-                    level in difficulty_line.lower()
-                    for level in ["beginner", "intermediate", "advanced"]
-                ):
-                    warnings.append(
-                        f"Project #{i} has invalid difficulty level (must be beginner/intermediate/advanced)"
-                    )
+    # Validate project format - look for bullet points with bold titles
+    if "=== PROJECT RECOMMENDATIONS ===" in text:
+        projects_section = text.split("=== PROJECT RECOMMENDATIONS ===")[1]
+        # Check for bullet points with bold markdown
+        project_pattern = r"-\s+\*\*.+\*\*:\s+.+"
+        project_matches = re.findall(project_pattern, projects_section)
+        if len(project_matches) == 0:
+            warnings.append("No properly formatted projects found in PROJECT RECOMMENDATIONS section")
 
     is_valid = len(errors) == 0
     return FormatValidationResult(is_valid, errors, warnings)

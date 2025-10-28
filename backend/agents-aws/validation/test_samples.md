@@ -4,7 +4,7 @@ Use these sample inputs to test the validation Lambda functions in the AWS Lambd
 
 ## Test Event for Job Market Validation
 
-**Function:** `UTD-ValidateJobMarket`
+**Function:** `UTD_ValidateJobMarket`
 
 ```json
 {
@@ -22,7 +22,7 @@ Use these sample inputs to test the validation Lambda functions in the AWS Lambd
 
 ## Test Event for Course Validation
 
-**Function:** `UTD-ValidateCourse`
+**Function:** `UTD_ValidateCourse`
 
 ```json
 {
@@ -40,7 +40,7 @@ Use these sample inputs to test the validation Lambda functions in the AWS Lambd
 
 ## Test Event for Project Validation
 
-**Function:** `UTD-ValidateProject`
+**Function:** `UTD_ValidateProject`
 
 ```json
 {
@@ -128,7 +128,7 @@ All validation functions should return a response in this format:
 ## How to Test in AWS Lambda Console
 
 1. Go to AWS Lambda console
-2. Select one of the validation functions (`UTD-ValidateJobMarket`, `UTD-ValidateCourse`, or `UTD-ValidateProject`)
+2. Select one of the validation functions (`UTD_ValidateJobMarket`, `UTD_ValidateCourse`, or `UTD_ValidateProject`)
 3. Click "Test" button
 4. Create a new test event
 5. Copy one of the JSON test events above

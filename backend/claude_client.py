@@ -13,7 +13,8 @@ import boto3
 
 load_dotenv()
 REGION = os.getenv("AWS_REGION") or "us-east-1"
-MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+# Try inference profile first, fallback to model ID if not available
+MODEL_ID = os.getenv("CLAUDE_MODEL_ID", "anthropic.claude-3-5-sonnet-20241022-v2:0")
 
 bedrock = boto3.client("bedrock-runtime", region_name=REGION)
 

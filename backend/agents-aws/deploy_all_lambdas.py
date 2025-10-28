@@ -59,6 +59,7 @@ def main():
     print("2. Nebula API Tools (Course Catalog)")
     print("3. Project Tools")
     print("4. Validation Tools")
+    print("5. Catalog Browser Tools")
     print("=" * 80)
 
     # Get current directory
@@ -71,6 +72,7 @@ def main():
         or not (current_dir / "nebula").exists()
         or not (current_dir / "projects").exists()
         or not (current_dir / "validation").exists()
+        or not (current_dir / "catalog-browser").exists()
     ):
         print("❌ Error: Please run this script from the agents-aws directory")
         print("Expected structure:")
@@ -78,7 +80,8 @@ def main():
         print("    ├── job/")
         print("    ├── nebula/")
         print("    ├── projects/")
-        print("    └── validation/")
+        print("    ├── validation/")
+        print("    └── catalog-browser/")
         sys.exit(1)
 
     # Track deployment results and ARNs
@@ -111,6 +114,12 @@ def main():
         # We'll need to parse the validation output differently
         pass
 
+    # Deploy Catalog Browser Tools
+    success, arn = run_deployment_script("catalog-browser", "deploy_lambda.py")
+    results["catalog-browser"] = success
+    if success and arn:
+        lambda_arns["LAMBDA_CATALOG_BROWSER_ARN"] = arn
+
     # Summary
     print(f"\n{'='*80}")
     print("DEPLOYMENT SUMMARY")
@@ -130,7 +139,7 @@ def main():
     print(f"\nTotal: {successful} successful, {failed} failed")
 
     if failed == 0:
-        print("\n🎉 All 4 Lambda functions deployed successfully!")
+        print("\n🎉 All 5 Lambda functions deployed successfully!")
         print("\n" + "=" * 80)
         print("LAMBDA FUNCTION ARNs - Add these to your .env file:")
         print("=" * 80)
@@ -142,13 +151,13 @@ def main():
         # Add validation ARNs (these are typically shown in the validation output)
         print("\nValidation Lambda ARNs (from validation deployment output):")
         print(
-            "LAMBDA_VALIDATE_JOBMARKET_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateJobMarket"
+            "LAMBDA_VALIDATE_JOBMARKET_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateJobMarket"
         )
         print(
-            "LAMBDA_VALIDATE_COURSE_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateCourse"
+            "LAMBDA_VALIDATE_COURSE_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateCourse"
         )
         print(
-            "LAMBDA_VALIDATE_PROJECT_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD-ValidateProject"
+            "LAMBDA_VALIDATE_PROJECT_ARN=arn:aws:lambda:us-east-1:556316456032:function:UTD_ValidateProject"
         )
 
         print("\nNext steps:")

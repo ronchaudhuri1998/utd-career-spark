@@ -23,56 +23,29 @@ export function extractJobMarketStats(jobMarketText: string): StatItem[] {
 
   const stats: StatItem[] = [];
 
-  // Total jobs
-  if (parsedData.listings.length > 0) {
+  // Companies hiring
+  if (parsedData.insights.topEmployers.length > 0) {
     stats.push({
-      label: "Recommended Jobs",
-      value: parsedData.listings.length,
+      label: "Companies Hiring",
+      value: parsedData.insights.topEmployers.length,
       icon: "Briefcase",
-    });
-  }
-
-  // Average salary (extract from salary ranges)
-  const salaries = parsedData.listings
-    .map((job) => job.salary)
-    .filter(Boolean)
-    .map((salary) => {
-      // Extract numbers from salary strings like "$85,000 - $120,000"
-      const numbers = salary?.match(/\$?([0-9,]+)/g);
-      if (numbers && numbers.length >= 2) {
-        const min = parseInt(numbers[0].replace(/[$,]/g, ""));
-        const max = parseInt(numbers[1].replace(/[$,]/g, ""));
-        return (min + max) / 2;
-      }
-      return null;
-    })
-    .filter((salary): salary is number => salary !== null);
-
-  if (salaries.length > 0) {
-    const avgSalary = Math.round(
-      salaries.reduce((sum, salary) => sum + salary, 0) / salaries.length
-    );
-    stats.push({
-      label: "Avg Salary",
-      value: `$${(avgSalary / 1000).toFixed(0)}K`,
-      icon: "DollarSign",
     });
   }
 
   // Top skills count
   if (parsedData.insights.skills.length > 0) {
     stats.push({
-      label: "Top Skills",
+      label: "In-Demand Skills",
       value: parsedData.insights.skills.length,
       icon: "Zap",
     });
   }
 
-  // Hot roles count
-  if (parsedData.insights.hotRoles.length > 0) {
+  // Market trends count
+  if (parsedData.insights.marketTrends.length > 0) {
     stats.push({
-      label: "Hot Roles",
-      value: parsedData.insights.hotRoles.length,
+      label: "Market Insights",
+      value: parsedData.insights.marketTrends.length,
       icon: "TrendingUp",
     });
   }
@@ -100,34 +73,12 @@ export function extractCourseStats(courseText: string): StatItem[] {
     });
   }
 
-  // Total credits
-  const totalCredits = parsedData.courses.reduce(
-    (sum, course) => sum + course.credits,
-    0
-  );
-  if (totalCredits > 0) {
+  // Skill areas
+  if (parsedData.insights.skillAreas.length > 0) {
     stats.push({
-      label: "Credits",
-      value: totalCredits,
+      label: "Skill Areas",
+      value: parsedData.insights.skillAreas.length,
       icon: "GraduationCap",
-    });
-  }
-
-  // Semesters planned
-  if (parsedData.insights.semesters.length > 0) {
-    stats.push({
-      label: "Semesters",
-      value: parsedData.insights.semesters.length,
-      icon: "Calendar",
-    });
-  }
-
-  // Resources available
-  if (parsedData.insights.resources.length > 0) {
-    stats.push({
-      label: "Resources",
-      value: parsedData.insights.resources.length,
-      icon: "Users",
     });
   }
 
@@ -169,42 +120,15 @@ export function extractProjectStats(projectText: string): StatItem[] {
     });
   }
 
-  // Average time estimate (extract weeks from time strings)
-  const timeEstimates = parsedData.projects
-    .map((project) => project.estimatedTime)
-    .filter(Boolean)
-    .map((time) => {
-      // Extract numbers from strings like "3-4 weeks", "2-3 weeks"
-      const match = time?.match(/(\d+)-?(\d+)?\s*weeks?/i);
-      if (match) {
-        const min = parseInt(match[1]);
-        const max = match[2] ? parseInt(match[2]) : min;
-        return (min + max) / 2;
-      }
-      return null;
-    })
-    .filter((time): time is number => time !== null);
-
-  if (timeEstimates.length > 0) {
-    const avgTime = Math.round(
-      timeEstimates.reduce((sum, time) => sum + time, 0) / timeEstimates.length
-    );
-    stats.push({
-      label: "Avg Time",
-      value: `${avgTime} weeks`,
-      icon: "Clock",
-    });
-  }
-
-  // Categories count
-  const categories = new Set(
-    parsedData.projects.map((p) => p.category).filter(Boolean)
+  // Unique skills count
+  const allSkills = new Set(
+    parsedData.projects.flatMap((p) => p.skills).filter(Boolean)
   );
-  if (categories.size > 0) {
+  if (allSkills.size > 0) {
     stats.push({
-      label: "Categories",
-      value: categories.size,
-      icon: "Layers",
+      label: "Unique Skills",
+      value: allSkills.size,
+      icon: "Zap",
     });
   }
 

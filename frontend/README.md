@@ -88,6 +88,8 @@ This project uses [shadcn/ui](https://ui.shadcn.com/) for consistent, accessible
 - **Navigation**: Responsive navigation and routing
 - **Chat Interface**: AI-powered career guidance chat with SSE streaming
 - **Skeletons**: Loading state animations
+- **LoadingOverlay**: Animated reasoning trace overlay with optional simulator button
+- **ReasoningTraceGraph**: Canvas node-link animation for reasoning trace
 
 ### Chat Components
 
@@ -163,7 +165,23 @@ Routes are defined in `App.tsx` using React Router:
 ### Dashboard
 - Interactive agent cards showing real-time status
 - Multi-agent collaboration visualization
-- Responsive grid layout with loading states
+- Responsive grid layout with loading states and SSE-driven reasoning trace overlay
+### Reasoning Trace Overlay
+
+The dashboards replace spinners with a live reasoning-trace graph that streams from SSE events.
+
+Usage example:
+
+```tsx
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
+
+<LoadingOverlay title="Refreshing job market insights..." simulateButton />
+```
+
+- Colors: blue (start), orange (reasoning), pink (graph calls), green (end).
+- A "Simulate Loading" button triggers a synthetic sequence for demos.
+- Respects `prefers-reduced-motion` with a static rendering.
+
 
 ### Chat Interface
 - **SSE Streaming**: Real-time responses from AgentCore multi-agent system

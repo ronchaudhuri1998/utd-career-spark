@@ -16,6 +16,17 @@ export interface AgentCard {
     type: string;
     name: string;
     result: string;
+    status?: "calling" | "completed" | "failed";
+    function?: string;
+    parameters?: Record<string, any>;
+    execution_time_ms?: number;
+    api_path?: string;
+    verb?: string;
+    trace_id?: string;
+    client_request_id?: string;
+    response?: string;
+    query?: string;
+    references_count?: number;
   }>;
 }
 
@@ -32,6 +43,17 @@ interface TraceData {
     type: string;
     name: string;
     result: string;
+    status?: "calling" | "completed" | "failed";
+    function?: string;
+    parameters?: Record<string, any>;
+    execution_time_ms?: number;
+    api_path?: string;
+    verb?: string;
+    trace_id?: string;
+    client_request_id?: string;
+    response?: string;
+    query?: string;
+    references_count?: number;
   }>;
   supervisor_id?: string;
   agent_call_id?: string;
@@ -268,16 +290,11 @@ export const useSSE = (): UseSSEReturn => {
                 }
               }
 
-              // Handle tool calls - integrate them into reasoning flow
+              // Handle tool calls - add detailed tool call entries immediately
               if (data.tool_calls && data.tool_calls.length > 0) {
                 const agentName = data.agent?.includes("Collaborator:")
                   ? data.agent.replace("Collaborator: ", "")
                   : data.agent || "Supervisor";
-
-                // Add each tool call as a reasoning item to maintain chronological order
-                const toolReasoningItems = data.tool_calls!.map(
-                  (tool) => `🔧 ${tool.result}`
-                );
 
                 // Group supervisor tool calls by supervisor_id, create individual cards for collaborators
                 if (agentName === "Supervisor" && data.supervisor_id) {
@@ -287,18 +304,19 @@ export const useSSE = (): UseSSEReturn => {
                     if (existing) {
                       newMap.set(data.supervisor_id, {
                         ...existing,
-                        reasoningItems: [
-                          ...existing.reasoningItems,
-                          ...toolReasoningItems,
+                        toolCalls: [
+                          ...(existing.toolCalls || []),
+                          ...data.tool_calls!,
                         ],
                       });
                     } else {
                       newMap.set(data.supervisor_id, {
                         agent: "Supervisor",
                         status: "working",
-                        reasoningItems: toolReasoningItems,
+                        reasoningItems: existing?.reasoningItems || [],
                         output: null,
                         startTime: Date.now(),
+                        toolCalls: data.tool_calls!,
                       });
                     }
                     return newMap;
@@ -312,18 +330,19 @@ export const useSSE = (): UseSSEReturn => {
                     if (existing) {
                       newMap.set(cardKey, {
                         ...existing,
-                        reasoningItems: [
-                          ...existing.reasoningItems,
-                          ...toolReasoningItems,
+                        toolCalls: [
+                          ...(existing.toolCalls || []),
+                          ...data.tool_calls!,
                         ],
                       });
                     } else {
                       newMap.set(cardKey, {
                         agent: agentName,
                         status: "working",
-                        reasoningItems: toolReasoningItems,
+                        reasoningItems: existing?.reasoningItems || [],
                         output: null,
                         startTime: Date.now(),
+                        toolCalls: data.tool_calls!,
                       });
                     }
                     return newMap;

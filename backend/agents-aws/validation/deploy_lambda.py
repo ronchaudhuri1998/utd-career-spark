@@ -9,9 +9,18 @@ import zipfile
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from project root (3 levels up from this file)
+env_path = Path(__file__).parent.parent.parent.parent / '.env'
+load_dotenv(env_path)
+print(f"Loading .env from: {env_path}")
+
+# Explicitly set AWS credentials from .env for boto3
+os.environ["AWS_ACCESS_KEY_ID"] = os.getenv("AWS_ACCESS_KEY_ID", "")
+os.environ["AWS_SECRET_ACCESS_KEY"] = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+os.environ["AWS_REGION"] = os.getenv("AWS_REGION", "us-east-1")
 
 lambda_client = boto3.client("lambda", region_name=os.getenv("AWS_REGION", "us-east-1"))
 iam_client = boto3.client("iam", region_name=os.getenv("AWS_REGION", "us-east-1"))
@@ -19,26 +28,26 @@ iam_client = boto3.client("iam", region_name=os.getenv("AWS_REGION", "us-east-1"
 # Function configurations
 FUNCTIONS = [
     {
-        "name": "UTD-ValidateJobMarket",
+        "name": "UTD_ValidateJobMarket",
         "file": "lambda_validate_job_market.py",
         "handler": "lambda_validate_job_market.lambda_handler",
         "description": "Validates job market agent output format",
     },
     {
-        "name": "UTD-ValidateCourse",
+        "name": "UTD_ValidateCourse",
         "file": "lambda_validate_course.py",
         "handler": "lambda_validate_course.lambda_handler",
         "description": "Validates course catalog agent output format",
     },
     {
-        "name": "UTD-ValidateProject",
+        "name": "UTD_ValidateProject",
         "file": "lambda_validate_project.py",
         "handler": "lambda_validate_project.lambda_handler",
         "description": "Validates project advisor agent output format",
     },
 ]
 
-ROLE_NAME = "UTD-ValidationLambdaRole"
+ROLE_NAME = "UTD_ValidationLambdaRole"
 
 
 def get_lambda_role():
@@ -141,6 +150,9 @@ def deploy_lambda_function(function_config, role_arn, zip_path):
             Timeout=30,  # 30 seconds for validation
             MemorySize=256,  # 256 MB for validation
             Description=function_config["description"],
+            Environment={
+                "Variables": {"NEBULA_API_KEY": os.getenv("NEBULA_API_KEY", "")}
+            },
         )
         function_arn = response["FunctionArn"]
         print(f"✓ Created Lambda function: {function_arn}")
@@ -151,6 +163,7 @@ def deploy_lambda_function(function_config, role_arn, zip_path):
         response = lambda_client.update_function_code(
             FunctionName=function_config["name"], ZipFile=zip_content
         )
+        
         function_arn = response["FunctionArn"]
         print(f"✓ Updated Lambda function: {function_arn}")
 
@@ -215,7 +228,7 @@ def main():
     print("\nAdd these to your .env file:")
     for func in deployed_functions:
         env_var = (
-            f"LAMBDA_VALIDATE_{func['name'].replace('UTD-Validate', '').upper()}_ARN"
+            f"LAMBDA_VALIDATE_{func['name'].replace('UTD_Validate', '').upper()}_ARN"
         )
         print(f"{env_var}={func['arn']}")
 
@@ -223,7 +236,7 @@ def main():
     print("LAMBDA_VALIDATE_JOBMARKET_ARN=...")
     print("LAMBDA_VALIDATE_COURSE_ARN=...")
     print("LAMBDA_VALIDATE_PROJECT_ARN=...")
-    print("\nNow update setup_agentcore_agents.py to use these Lambda ARNs")
+    print("\nNow run setup_agentcore_agents.py to use these Lambda ARNs")
 
 
 if __name__ == "__main__":

@@ -191,13 +191,16 @@ def process_career_goal(natural_language_goal: str) -> str:
         f"Output ONLY the career goal statement, no introductory text or explanations."
     )
     try:
-        return claude_chat(
+        result = claude_chat(
             prompt,
             system_prompt="You are a career guidance expert. Output ONLY the career goal statement. Do not include any introductory text, explanations, or formatting. Just return the goal statement itself.",
             max_tokens=200,
             temperature=0.3,
         ).strip()
-    except Exception:
+        logger.info(f"Successfully processed career goal. Original: {natural_language_goal[:50]}... Result: {result[:50]}...")
+        return result
+    except Exception as e:
+        logger.error(f"Error processing career goal with Claude: {e}")
         return natural_language_goal
 
 

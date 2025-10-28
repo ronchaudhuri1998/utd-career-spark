@@ -23,6 +23,17 @@ interface Message {
       type: string;
       name: string;
       result: string;
+      status?: "calling" | "completed" | "failed";
+      function?: string;
+      parameters?: Record<string, any>;
+      execution_time_ms?: number;
+      api_path?: string;
+      verb?: string;
+      trace_id?: string;
+      client_request_id?: string;
+      response?: string;
+      query?: string;
+      references_count?: number;
     }>;
   };
 }
@@ -42,8 +53,12 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
   const hasProgressUpdates =
     message.meta?.progressUpdates && message.meta.progressUpdates.length > 0;
   const hasOutput = message.meta?.output;
+  const hasToolCalls =
+    message.meta?.toolCalls && message.meta.toolCalls.length > 0;
   const shouldShowAccordion =
-    isProgressUpdate && (hasProgressUpdates || hasOutput);
+    isProgressUpdate && (hasProgressUpdates || hasOutput || hasToolCalls);
+  const defaultAccordionValue =
+    shouldShowAccordion && isInProgress ? "details" : undefined;
 
   const messageClasses = cn(
     "rounded-lg border p-3 text-sm transition-all duration-200 m-4 text-foreground",
@@ -85,7 +100,9 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
             variant="outline"
             className={cn(
               "bg-transparent border-border text-foreground/80",
-              message.meta?.agent ? agentBadgeIntent[message.meta.agent] || "" : ""
+              message.meta?.agent
+                ? agentBadgeIntent[message.meta.agent] || ""
+                : ""
             )}
           >
             {message.meta?.agent || "Response"}
@@ -94,7 +111,12 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
       </div>
 
       {shouldShowAccordion ? (
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full"
+          defaultValue={defaultAccordionValue}
+        >
           <AccordionItem value="details" className="border-none">
             <AccordionTrigger className="py-2 px-0 hover:no-underline">
               <p className="text-foreground whitespace-pre-wrap leading-relaxed text-left">
@@ -116,6 +138,77 @@ const ChatMessage = ({ message, agentBadgeIntent }: ChatMessageProps) => {
                           {update}
                         </p>
                       ))}
+                    </div>
+                  </div>
+                )}
+                {hasToolCalls && (
+                  <div>
+                    <p className="font-medium text-sm mb-2 text-foreground">
+                      Tool Calls:
+                    </p>
+                    <div className="space-y-2">
+                      {message.meta.toolCalls.map((tool, index) => {
+                        const statusIcon =
+                          tool.status === "calling"
+                            ? "⏳"
+                            : tool.status === "completed"
+                            ? "✅"
+                            : tool.status === "failed"
+                            ? "❌"
+                            : "🔧";
+
+                        return (
+                          <div
+                            key={index}
+                            className="border rounded p-2 bg-muted/30"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm">{statusIcon}</span>
+                              <span className="font-medium text-sm">
+                                {tool.name}
+                                {tool.function && `.${tool.function}`}
+                              </span>
+                              {tool.execution_time_ms && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({tool.execution_time_ms}ms)
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-foreground/80 mb-1">
+                              {tool.result}
+                            </p>
+                            {tool.parameters &&
+                              Object.keys(tool.parameters).length > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                  <span className="font-medium">
+                                    Parameters:
+                                  </span>
+                                  <pre className="mt-1 text-xs bg-muted/50 p-1 rounded overflow-x-auto">
+                                    {JSON.stringify(tool.parameters, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            {tool.query && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">Query:</span>{" "}
+                                {tool.query}
+                              </div>
+                            )}
+                            {tool.references_count && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">References:</span>{" "}
+                                {tool.references_count}
+                              </div>
+                            )}
+                            {tool.api_path && tool.verb && (
+                              <div className="text-xs text-muted-foreground">
+                                <span className="font-medium">API:</span>{" "}
+                                {tool.verb} {tool.api_path}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
