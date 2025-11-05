@@ -180,7 +180,7 @@ KAGGLE_USERNAME=your_username
 KAGGLE_KEY=your_key
 NEBULA_API_KEY=your_api_key
 ```
-Note that the Nebula API is ran by a student organization @ UTD and not intended for public use. Please contact davis.mo@utdallas.edu if you want a key for this.
+Note that the Nebula API is ran by a student organization @ UTD and not intended for public use. Please contact ron.chaudhuri@utdallas.edu if you want a key for this.
 
 ### Setup Commands
 
