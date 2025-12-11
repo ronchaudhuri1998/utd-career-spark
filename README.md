@@ -345,7 +345,7 @@ The main student dashboard showing the multi-agent career guidance ecosystem.
 
 ### 🤖 Multi-Agent Orchestration  
 Real-time orchestration between Supervisor, Job Market Agent, Academic Advisor, and Project Advisor.  
-<img src="Multi-agent_Orchestration.png" width="900"/>
+<img src="Multi-agent Orchestration.png" width="900"/>
 
 ---
 ### 🎓 Academic Advisor Agent  
