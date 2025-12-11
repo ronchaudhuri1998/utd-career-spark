@@ -339,13 +339,13 @@ utd-career-spark/
 
 ### 🏠 Landing Page  
 The main student dashboard showing the multi-agent career guidance ecosystem.  
-<img src="HomePage1.png" width="900"/>
+<img src="HomePage1.jpg" width="900"/>
 
 ---
 
 ### 🤖 Multi-Agent Orchestration  
 Real-time orchestration between Supervisor, Job Market Agent, Academic Advisor, and Project Advisor.  
-<img src="Multi-agent_Orchestration.png" width="900"/>
+<img src="Multi-agent_Orchestration.jpg" width="900"/>
 
 ---
 
