@@ -343,11 +343,6 @@ The main student dashboard showing the multi-agent career guidance ecosystem.
 
 ---
 
-### 🤖 Multi-Agent Orchestration  
-Real-time orchestration between Supervisor, Job Market Agent, Academic Advisor, and Project Advisor.  
-<img src="Multi-agent_Orchestration.jpg" width="900"/>
-
----
 
 ### 🎓 Academic Advisor Agent  
 Assists students with course planning and academic decisions.  
@@ -361,7 +356,7 @@ Analyzes job postings and skill trends to provide personalized guidance.
 
 ---
 
-### 📁 Portfolio & Project Recommendations  
+### 🤖 Portfolio & Project Recommendations  
 Suggests personalized project ideas to improve student portfolios.  
 <img src="Portfolio_Project.png" width="900"/>
 
