@@ -335,6 +335,37 @@ utd-career-spark/
 
 ---
 
+## 🚀 UTD Career Spark – UI Preview
+
+### 🏠 Landing Page  
+The main student dashboard showing the multi-agent career guidance ecosystem.  
+<img src="HomePage1.png" width="900"/>
+
+---
+
+### 🤖 Multi-Agent Orchestration  
+Real-time orchestration between Supervisor, Job Market Agent, Academic Advisor, and Project Advisor.  
+<img src="Multi-agent_Orchestration.png" width="900"/>
+
+---
+
+### 🎓 Academic Advisor Agent  
+Assists students with course planning and academic decisions.  
+<img src="Academic_Advisor.png" width="900"/>
+
+---
+
+### 💼 Job Market Assistant  
+Analyzes job postings and skill trends to provide personalized guidance.  
+<img src="Job_Market_Assistant.png" width="900"/>
+
+---
+
+### 📁 Portfolio & Project Recommendations  
+Suggests personalized project ideas to improve student portfolios.  
+<img src="Portfolio_Project.png" width="900"/>
+
+
 ## 📝 License
 
 MIT License - Built for educational purposes as part of AWS Bedrock AgentCore Hackathon 2025.
