@@ -364,6 +364,10 @@ Analyzes job postings and skill trends to provide personalized guidance.
 Suggests personalized project ideas to improve student portfolios.  
 <img src="Portfolio_Project.png" width="900"/>
 
+## 🎥 Demo Video  
+[![Watch the demo](https://img.youtube.com/vi/YourVideoID/maxresdefault.jpg)](https://www.youtube.com/watch?v=3vt16R25rgc&feature=youtu.be)
+
+
 
 ## 📝 License
 
